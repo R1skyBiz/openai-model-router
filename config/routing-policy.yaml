@@ -1,0 +1,6 @@
+schema_version: 1
+
+# Ordered routing rules and fallback behavior will be specified in Phase 1.
+objective: null
+default_route: null
+rules: []

@@ -1,0 +1,5 @@
+schema_version: 1
+
+# Validation profiles will map routes and risk classes to deterministic or
+# model-based checks.
+profiles: []

@@ -1,0 +1,5 @@
+schema_version: 1
+currency: USD
+
+# Budget scopes and limits will be defined with the routing objective.
+budgets: []

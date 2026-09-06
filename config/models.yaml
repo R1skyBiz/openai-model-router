@@ -1,0 +1,5 @@
+schema_version: 1
+
+# Model entries will define provider model IDs, capabilities, pricing, and
+# supported reasoning levels. Keep those values out of Python modules.
+models: []
