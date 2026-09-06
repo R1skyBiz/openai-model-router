@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.14",
   "fastapi>=0.115",
+  "openai>=2.54,<3",
   "pydantic>=2.10,<3",
   "pyyaml>=6.0",
   "sqlalchemy>=2.0",
@@ -28,6 +29,9 @@ packages = ["src/model_router"]
 addopts = "-q"
 testpaths = ["tests"]
 pythonpath = [".", "src"]
+markers = [
+  "live_openai: explicitly opted-in paid OpenAI checks (skipped by default)",
+]
 
 [tool.uv]
 package = true

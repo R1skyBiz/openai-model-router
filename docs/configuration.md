@@ -11,11 +11,21 @@ this contract in `model_router.policy.loader`.
 | routing-policy.yaml | Objective, taxonomy, component ranges, priors, floors/modifiers, selection/recovery rules, and rationale-code registry. |
 | budgets.yaml | Default budget behavior and application overlay schema. |
 | validation.yaml | V0–V3 profiles, evaluator bindings, consequence defaults, and sampled shadow settings. |
+| classifier.yaml | Separately versioned classifier model/effort, prompt reference, output/time bounds and disabled live switch. |
 
 Paths above are relative to `config/`. Documents define semantics; YAML owns
 numeric policy values and tunable defaults. Do not maintain a second policy
 table in Python, dashboards, or eval graders. Evals may independently express
 expected constraints to detect policy regressions.
+
+Phase 2 classifier configuration is loaded separately and does not alter the
+four-file Phase 1 PolicyBundle or its content hash. Its provenance binds the
+classifier configuration, referenced prompt bytes, generated schema and policy
+vocabulary. The prompt characterizes task properties; it does not include model
+tiers, route selection rules or validation recommendations. The initial configured
+classifier invocation is Luna/low, with live access disabled. No configured
+subclasses exist, so the classifier returns null for that field. See
+[Phase 2 interfaces](phase-2-interfaces.md) and [ADR 0011](decisions/0011-phase-2-classifier-provider-boundary.md).
 
 The Phase 1 loader accepts `load_bundle(config_directory)` and returns a deeply
 immutable snapshot. Derived-candidate effort preferences must support every

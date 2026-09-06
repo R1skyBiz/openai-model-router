@@ -1,7 +1,7 @@
 # Independent routing evaluation contract
 
 This pre-Phase-1 contract contains **179 authored cases**, including 56 normal
-routing cases and 19 future classification seeds. It defines acceptable behavior
+routing cases and 19 classification seeds. It defines acceptable behavior
 before a router existed. The independent offline grader evaluates supplied
 observations; it does not route requests, call providers, classify text, run
 validators or execute recovery. No API key or network is required.
@@ -9,11 +9,54 @@ validators or execute recovery. No API key or network is required.
 The approved architecture is pinned at `f3e8c70`. See
 [ADR 0009](../docs/decisions/0009-pre-phase-1-evaluation-contract.md) for the phase
 boundary and [coverage and audit](coverage.md) for the reviewed distribution.
-The draft files under `config/` and authored expectations remain unchanged.
+The four approved policy YAML files and authored expectations remain unchanged.
 Phase 1 now supplies the separate [adapter](phase1_adapter.py) and
 [runner](run_phase1.py): `uv run python evals/run_phase1.py`. It runs all 142
-cases with supplied classification and no recovery script, and reports all 37
-future-phase skips. The original grader and its fixtures remain independent.
+cases with supplied classification and no recovery script, and reports its 37
+out-of-scope cases. Phase 2 handles 19 of those separately; 18 require Phase 3.
+The original grader and its fixtures remain independent.
+
+## Phase 2 classification
+
+The separate Phase 2 runner executes all 19 classification seeds through a
+classifier and projects its actual output into the unchanged independent grader:
+
+```bash
+uv run --offline python evals/run_phase2.py --report evals/results/phase2-report.json \
+  --results evals/results/phase2-observations.jsonl
+uv run --offline python evals/run_local.py --results evals/results/phase2-observations.jsonl --allow-subset
+```
+
+Default runs use versioned task-input-keyed scripts from `phase2_data/` through
+MockClassifier's strict schema/normalizer. Those scripts contain no expected
+envelopes or case IDs, and never read expectations. Poisoned-envelope tests
+verify that changing the oracle does not change classifier output. Passing is
+deterministic schema/adapter conformance, **not live model accuracy**. Reports
+include family-envelope, component-envelope, flag and confidence/provenance
+conformance passes; family/score distributions; and all eight authored
+multi-family allowances. Phase 1 retains its separate 142-case runner; all 18
+recovery scenarios remain Phase 3-only.
+
+For an intentionally paid classifier eval, first verify current account access
+and standard text/cache prices and prepare a separate copy of
+`config/live-eval.yaml` with those attestations, today's verification date,
+`enabled: true`, and a positive finite `max_total_cost_usd`. Supply an API key
+through the environment; never put it in YAML. Then explicitly run:
+
+```bash
+RUN_LIVE_OPENAI_TESTS=1 OPENAI_LIVE_EVAL_CONFIG=/path/to/reviewed-live-eval.yaml \
+  uv run python evals/run_phase2.py --live --report evals/results/phase2-live-report.json
+```
+
+The live path uses the separately versioned `phase2_data/live-classifier.yaml`
+and its frozen prompt copy. It checks the full 19-call conservative cost allocation
+and every prompt/schema input allowance before creating the provider. These
+text byte bounds plus configured framing margin are conservative eval allowances,
+not an exact tokenizer or production budget admission. It makes one call per
+seed with no retry. The report retains model/effort, prompt/schema/config versions,
+per-call response/status/usage, and usage-derived costs. Incomplete cost evidence
+stays partial with a null total. Default checked-in settings block paid execution;
+no account probe is performed to bypass an unknown prerequisite.
 
 ## Run
 
@@ -37,7 +80,7 @@ permitted, but an empty observation submission is not a pass.
 For a future complete router run, omit `--allow-subset`. Every case ID must occur
 exactly once. Phase-specific integrations may explicitly use a subset until their
 adapters support classification/recovery. Reports must identify that subset.
-`--allow-subset` is used here only for grader fixtures.
+`--allow-subset` is used for grader fixtures and phase-specific observations.
 
 The Python entry point is
 `grade(case, observation, catalog, policy_version, vocabulary) -> list[str]`.

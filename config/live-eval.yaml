@@ -1,0 +1,14 @@
+schema_version: 1
+version: live-eval-v1.0.0
+enabled: false
+account_access_verified: false
+pricing_verified: false
+verified_on: null
+max_total_cost_usd: null
+max_input_tokens_per_call: 8192
+input_overhead_tokens: 1024
+provider_canary:
+  model_alias: luna
+  reasoning_effort: none
+  max_output_tokens: 16
+  timeout_ms: 30000

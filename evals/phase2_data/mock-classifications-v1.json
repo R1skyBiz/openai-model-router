@@ -1,0 +1,424 @@
+{
+  "schema_version": 1,
+  "fixture_version": "phase2-classifier-mock-v1",
+  "outputs": {
+    "Convert nested invoice JSON to a supplied schema while preserving optional fields and exact decimals.": {
+      "task_family": "transform",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 8,
+        "step_dependency": 8,
+        "context_synthesis": 5,
+        "technical_precision": 12,
+        "ambiguity": 2,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.94,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Extract dates and parties from supplied contract excerpts, distinguish amendments, and preserve uncertainty.": {
+      "task_family": "extract",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 8,
+        "step_dependency": 7,
+        "context_synthesis": 9,
+        "technical_precision": 8,
+        "ambiguity": 5,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.93,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Continue a support conversation with two unresolved user preferences and ask a focused clarification.": {
+      "task_family": "conversation",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 6,
+        "step_dependency": 5,
+        "context_synthesis": 7,
+        "technical_precision": 3,
+        "ambiguity": 7,
+        "tool_orchestration": 1,
+        "reliability_requirement": 2
+      },
+      "confidence": 0.96,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Draft a concise product brief from six supplied requirements, preserving priorities and two tradeoffs.": {
+      "task_family": "writing",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 8,
+        "step_dependency": 7,
+        "context_synthesis": 8,
+        "technical_precision": 5,
+        "ambiguity": 5,
+        "tool_orchestration": 1,
+        "reliability_requirement": 2
+      },
+      "confidence": 0.95,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Explain tradeoffs among three supplied protocol descriptions using their stated guarantees.": {
+      "task_family": "knowledge",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 9,
+        "step_dependency": 7,
+        "context_synthesis": 8,
+        "technical_precision": 8,
+        "ambiguity": 3,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.92,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Analyze a supplied sensitivity table with interacting assumptions and identify robust conclusions.": {
+      "task_family": "analysis",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 12,
+        "step_dependency": 9,
+        "context_synthesis": 7,
+        "technical_precision": 9,
+        "ambiguity": 4,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.94,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Calculate a piecewise utility bill with tiered rates, a capped credit, and explicit rounding rules.": {
+      "task_family": "math",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 10,
+        "step_dependency": 10,
+        "context_synthesis": 3,
+        "technical_precision": 12,
+        "ambiguity": 2,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.97,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Diagnose a pump from pressure, flow, temperature, and vibration measurements using supplied equations.": {
+      "task_family": "engineering",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 13,
+        "step_dependency": 10,
+        "context_synthesis": 7,
+        "technical_precision": 13,
+        "ambiguity": 4,
+        "tool_orchestration": 1,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.95,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": true,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Create an evidence matrix from six supplied abstracts with different methods and explicit inclusion criteria.": {
+      "task_family": "research",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 9,
+        "step_dependency": 8,
+        "context_synthesis": 10,
+        "technical_precision": 7,
+        "ambiguity": 4,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.93,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Implement a parser function with explicit grammar, error handling, and boundary tests.": {
+      "task_family": "coding",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 10,
+        "step_dependency": 10,
+        "context_synthesis": 5,
+        "technical_precision": 12,
+        "ambiguity": 2,
+        "tool_orchestration": 1,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.97,
+      "flags": {
+        "substantive_implementation": true,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Diagnose a reproducible state-machine bug across three local functions and verify the missing transition.": {
+      "task_family": "debugging",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 13,
+        "step_dependency": 12,
+        "context_synthesis": 7,
+        "technical_precision": 13,
+        "ambiguity": 5,
+        "tool_orchestration": 1,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.95,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Design the boundary between two modules with explicit data ownership and a limited migration constraint.": {
+      "task_family": "architecture",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 13,
+        "step_dependency": 10,
+        "context_synthesis": 8,
+        "technical_precision": 10,
+        "ambiguity": 5,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.94,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Plan a release with six dependent workstreams, limited staffing, and a rollback requirement.": {
+      "task_family": "planning",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 11,
+        "step_dependency": 12,
+        "context_synthesis": 6,
+        "technical_precision": 5,
+        "ambiguity": 6,
+        "tool_orchestration": 1,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.94,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Analyze retention after joining three supplied tables, accounting for late events and duplicate users.": {
+      "task_family": "data_analysis",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 12,
+        "step_dependency": 11,
+        "context_synthesis": 8,
+        "technical_precision": 12,
+        "ambiguity": 4,
+        "tool_orchestration": 1,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.96,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Coordinate lookups in four systems and reconcile identifiers before proposing a read-only reconciliation.": {
+      "task_family": "tool_workflow",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 6,
+        "step_dependency": 7,
+        "context_synthesis": 3,
+        "technical_precision": 5,
+        "ambiguity": 2,
+        "tool_orchestration": 8,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.95,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Plan a bounded workflow with several tool dependencies, a reconciliation step, and explicit stop conditions.": {
+      "task_family": "agentic",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 10,
+        "step_dependency": 11,
+        "context_synthesis": 5,
+        "technical_precision": 7,
+        "ambiguity": 4,
+        "tool_orchestration": 7,
+        "reliability_requirement": 3
+      },
+      "confidence": 0.94,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Refactor a repository-wide interface used across services while maintaining backward compatibility and staged migration tests.": {
+      "task_family": "coding",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 21,
+        "step_dependency": 18,
+        "context_synthesis": 13,
+        "technical_precision": 13,
+        "ambiguity": 7,
+        "tool_orchestration": 4,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.97,
+      "flags": {
+        "substantive_implementation": true,
+        "repository_wide": true,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Coordinate a long-horizon program with evolving dependencies, staged evidence review, tool coordination, and stop conditions.": {
+      "task_family": "agentic",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 20,
+        "step_dependency": 18,
+        "context_synthesis": 13,
+        "technical_precision": 12,
+        "ambiguity": 8,
+        "tool_orchestration": 8,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.96,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": false,
+        "long_horizon": true,
+        "exceptional_end_to_end": false
+      }
+    },
+    "Plan a consequential multi-system inventory change with dependency checks, approvals, and safe rollback across tools.": {
+      "task_family": "tool_workflow",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 17,
+        "step_dependency": 16,
+        "context_synthesis": 10,
+        "technical_precision": 12,
+        "ambiguity": 7,
+        "tool_orchestration": 8,
+        "reliability_requirement": 4
+      },
+      "confidence": 0.96,
+      "flags": {
+        "substantive_implementation": false,
+        "repository_wide": false,
+        "multivariable": false,
+        "consequential_multi_system": true,
+        "long_horizon": false,
+        "exceptional_end_to_end": false
+      }
+    }
+  }
+}

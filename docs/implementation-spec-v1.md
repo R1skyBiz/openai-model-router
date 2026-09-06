@@ -1,8 +1,8 @@
 # Implementation specification v1
 
-Status: Authoritative staged implementation contract. Phase 0 and the Phase 1
-route-only implementation are complete; [Phase 1 verification](phase-1-report.md)
-records its exit evidence. Phase 2 has not begun.
+Status: Authoritative staged implementation contract. Phases 0–2 are complete;
+[Phase 1 verification](phase-1-report.md) and [Phase 2 verification](phase-2-report.md)
+record their exit evidence. Live paths remain disabled. Phase 3 has not begun.
 
 ## Mission and release boundaries
 
@@ -63,7 +63,7 @@ corresponding enabled execution path is accepted.
   initial policy defaults have documented eval coverage; no later-phase runtime
   dependencies. A full production corpus is required by Phase 6, not this task.
 
-## Phase 2 — Classifier + OpenAI Provider
+## Phase 2 — Classifier + OpenAI Provider (complete)
 
 - **Deliverables:** Classifier adapter returning family/subclass, scores, flags
   and confidence; versioned classifier configuration; ModelProvider interface,

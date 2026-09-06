@@ -8,7 +8,8 @@ supplied classification and immutable configuration/environment snapshots,
 returns an explainable decision or rejection, and performs no network calls.
 The objective is Effective Cost per Successful Task; configured candidate order
 is the transparent cold-start prior until success estimates are calibrated.
-Provider execution and Phase 2 have not begun.
+Phase 2 adds a task classifier and a provider adapter for one Responses API call.
+Production execution remains disabled; Phase 3 orchestration has not begun.
 
 Start with [implementation phases](docs/implementation-spec-v1.md),
 [architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
@@ -32,7 +33,8 @@ Copy the environment template only when you need local provider access:
 cp .env.example .env
 ```
 
-The tests and Phase 1 evals do not need an OpenAI API key or network access.
+Default tests and both phase eval runners require no OpenAI API key or network.
+Install dependencies once; use `uv run --offline` for subsequent verification.
 
 ## Validate the repository
 
@@ -40,6 +42,7 @@ The tests and Phase 1 evals do not need an OpenAI API key or network access.
 uv run pytest
 uv run python evals/run_local.py
 uv run python evals/run_phase1.py
+uv run python evals/run_phase2.py
 ```
 
 The pytest suite checks contracts, configuration, routing, dependency boundaries,
@@ -49,6 +52,10 @@ schemas, acceptable envelopes, and passing/invalid hypothetical observations.
 `run_local.py` preserves the independent corpus validator/grader.
 `run_phase1.py` runs 142 applicable cases through the router and lists every
 skipped classification/recovery case. See the [Phase 1 report](docs/phase-1-report.md).
+`run_phase2.py` exercises all 19 classification seeds through scripted classifier
+outputs and the unchanged independent grader. These are schema/adapter checks,
+not measurements of live model accuracy. Recovery scenarios remain Phase 3-only.
+See the [Phase 2 completion report](docs/phase-2-report.md) for verification and review.
 
 ## Embedded routing
 
@@ -91,11 +98,31 @@ uv run python evals/run_phase1.py --report evals/results/phase1-report.json \
 uv run python evals/run_local.py --results evals/results/phase1-observations.jsonl --allow-subset
 ```
 
+## Optional paid provider check
+
+Live access is disabled in both classifier and live-eval configuration. Default
+tests remove credentials and block sockets; the marked provider canary is skipped.
+To intentionally run it, supply an environment-injected API key and a separate
+copy of `config/live-eval.yaml` with current account/price verification, today's
+verification date, an explicit positive total dollar cap, and `enabled: true`.
+The verification fields are operator attestations, not account probes. The
+canary makes one bounded text call and writes safe usage/cost evidence under
+`evals/results/`. It does not enable production execution in `budgets.yaml`.
+
+```bash
+RUN_LIVE_OPENAI_TESTS=1 OPENAI_LIVE_EVAL_CONFIG=/path/to/reviewed-live-eval.yaml \
+  uv run pytest tests/live/test_openai_canary.py
+```
+
+The classifier eval runner separately supports an explicitly paid run; see
+[the eval guide](evals/README.md). No live model accuracy or account access is
+claimed by the offline test results.
+
 ## Repository map
 
 - `src/model_router/`: core contracts, strict configuration, deterministic policy
-  modules and the canonical embedded router
-- `config/`: model catalog, policy, budget, and validation configuration
+  modules, canonical embedded router, classifier, and single-call provider adapters
+- `config/`: model catalog, policy, budget, validation and classifier configuration
 - `docs/`: implementation specifications, architecture notes, and decisions
 - `evals/`: offline evaluation runner, cases, graders, and ignored results
 - `tests/`: unit, integration, and smoke tests

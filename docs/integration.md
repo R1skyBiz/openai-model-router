@@ -1,7 +1,8 @@
 # Integration v1
 
-Status: Embedded route-only API implemented in Phase 1. HTTP endpoints and
-provider execution remain planned.
+Status: Embedded route-only API and Phase 2 classifier / single-invocation
+provider adapters are implemented. HTTP endpoints and task execution remain
+planned. See [Phase 2 report](phase-2-report.md).
 
 ## Shared engine and boundaries
 
@@ -20,9 +21,11 @@ It performs no network I/O. The execution orchestration boundary is conceptually
 validation, budget checks and event delivery. Execution signatures and async
 conventions remain later-phase design details.
 
-Initial adapters will be OpenAIProvider and MockProvider. MockProvider must
-simulate usage, failures, timeouts and validation outcomes without network or
-API credentials. Live-provider tests are isolated and opt-in. Framework-specific
+Initial adapters are OpenAIProvider and MockProvider. MockProvider scripts
+outputs, usage, failures and timeouts without network or API credentials;
+validation execution remains future work. Live-provider tests are isolated and
+opt-in. [Phase 2 interfaces](phase-2-interfaces.md) define the synchronous
+single-invocation port and classifier wrapper. Framework-specific
 conveniences never introduce a second policy engine.
 
 ## Minimum HTTP endpoints
@@ -40,8 +43,9 @@ conveniences never introduce a second policy engine.
 | GET /health/ready | Enabled-operation readiness and overall state, including safe DEGRADED mode. |
 | GET /health/components | Sanitized component/model/capability observations, freshness and circuit state. |
 
-Route-only may use the classifier adapter introduced in Phase 2 when no trusted
-classification is supplied; the HTTP adapter arrives in Phase 3. Any
+The Phase 1 route function still requires supplied classification. A future
+composition layer may use the Phase 2 classifier when no trusted classification
+is supplied; the HTTP adapter arrives in Phase 3. Any
 paid classification requires explicit routing/classification budget admission.
 Its cost is recorded with purpose=classification and task mode=preview; generation,
 task tools and evaluators remain forbidden. Supplied classification gives a fully
@@ -97,7 +101,7 @@ HTTP and embedded behavior must remain equivalent given the same snapshots.
 Use Python 3.12+, uv, Pydantic v2, FastAPI and SQLAlchemy/Alembic at their stated
 boundaries. Keep credentials in environment/secret injection, never config,
 request telemetry or committed fixtures. The existing .env.example remains the
-local convention; no key is required for bootstrap/Phase 1 tests.
+local convention; no key is required for default tests through Phase 2.
 
 Backend analytics implement [telemetry.md](telemetry.md); the dashboard renders
 returned definitions and denominators. Integration hardening verifies version

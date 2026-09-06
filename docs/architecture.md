@@ -1,7 +1,8 @@
 # Architecture v1
 
-Status: Accepted architecture contract; Phase 1 route-only implementation exists.
-Execution and external adapters remain future work. See [Phase 1 report](phase-1-report.md).
+Status: Accepted architecture contract; Phase 1 routing and Phase 2 classifier /
+single-invocation provider adapters are complete. Task orchestration remains
+future work. See [Phase 2 report](phase-2-report.md).
 
 ## Mission and ownership
 
@@ -131,21 +132,27 @@ A preview may select a candidate with an incomplete cost estimate but must set
 
 ## Ports and execution contracts
 
-`ModelProvider` is a core-owned interface, not an OpenAI SDK type. Its planned
+`ModelProvider` is a core-owned interface, not an OpenAI SDK type. Its Phase 2
 `execute(ProviderRequest) -> ProviderResult | ProviderFailure` operation accepts
-a pinned model ID, effort, content, output requirements, permitted tool
-descriptors, deadline/output bounds, and correlation IDs. It returns normalized
-output/tool-call requests, timing, token/cache usage, response ID, provider model
+a pinned model ID, effort, text content, structured output requirements,
+timeout/output bounds, and correlation IDs. It returns normalized
+output, timing, token/cache usage, response ID, provider model
 identity where returned, and normalized failure details. Execution orchestration,
 not the provider adapter, owns routing/escalation and side-effect authorization.
 
-`OpenAIProvider` later translates to the OpenAI API.
+`OpenAIProvider` translates one invocation to the OpenAI Responses API using the
+official SDK; retries and truncation are explicitly disabled. Structured output
+uses the SDK's strict text format and preserves the envelope before parsing.
 `MockProvider` supplies scripted outputs, usage, failures and timing without
 network or credentials. Adapter conformance tests must use both the same input
 contracts and normalized failure semantics. The initial provider scope is OpenAI;
-the abstraction does not authorize cross-provider routing.
+the abstraction does not authorize cross-provider routing. Tools, streaming and
+task execution are outside this Phase 2 port. See the
+[frozen interfaces](phase-2-interfaces.md) and [ADR 0011](decisions/0011-phase-2-classifier-provider-boundary.md).
 
-Additional ports are Classifier, Validator, ToolExecutor, HealthSnapshotSource,
+The Phase 2 Classifier port returns the existing Classification with versioned
+provenance and provider accounting; the model never selects the route. Future
+ports are Validator, ToolExecutor, HealthSnapshotSource,
 TaskRepository, BudgetLedger, and TelemetrySink. Core events contain facts;
 orchestration persists/delivers them. All execution paths, including failed and
 abandoned attempts, eventually emit telemetry. A durable pending-event mechanism

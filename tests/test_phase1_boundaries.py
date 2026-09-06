@@ -21,7 +21,10 @@ def test_runtime_source_has_no_forbidden_boundary_imports():
                 imports = [alias.name for alias in node.names]
             elif isinstance(node, ast.ImportFrom):
                 imports = [node.module or ""]
-            assert not any(name.split(".")[0] in FORBIDDEN for name in imports), path
+            # Phase 2 adds exactly one external adapter. The pure routing core,
+            # policy and classifier still have the original import restriction.
+            allowed = {"openai"} if path == ROOT / "src/model_router/execution/openai_provider.py" else set()
+            assert not any(name.split(".")[0] in FORBIDDEN - allowed for name in imports), path
 
 
 def test_core_and_policy_never_depend_on_selector():

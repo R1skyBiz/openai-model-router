@@ -1,0 +1,10 @@
+schema_version: classifier-schema-v1
+version: classifier-v1.0.0
+prompt_version: task-properties-v1
+status: draft
+model_alias: luna
+reasoning_effort: low
+max_output_tokens: 2048
+timeout_ms: 30000
+live_enabled: false
+prompt_path: prompts/task-properties-v1.txt
