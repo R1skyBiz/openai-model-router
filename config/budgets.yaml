@@ -1,5 +1,48 @@
 schema_version: 1
+version: budgets-v1.0.0
+status: draft
 currency: USD
 
-# Budget scopes and limits will be defined with the routing objective.
-budgets: []
+defaults:
+  model_tier_floor: L0
+  model_tier_ceiling: L3
+  task_cost_ceiling_usd: null
+  task_deadline_ms: null
+  period_spend_ceiling_usd: null
+  period: null
+  on_exhaustion: reject
+  on_floor_ceiling_conflict: reject
+  on_unknown_cost: reject_live_execution
+  require_finite_task_cost_ceiling_for_execution: true
+  include_costs: [classification, generation, retries, tools, validation]
+  shadow_budget: separate
+  # Deployment/application choices, not an invented dollar allowance.
+  live_execution_enabled: false
+
+overlay_contract:
+  key: application_id
+  merge: defaults_then_application_then_request_tightening
+  unknown_application: defaults
+  allowed_fields:
+    - model_tier_floor
+    - model_tier_ceiling
+    - task_cost_ceiling_usd
+    - task_deadline_ms
+    - period_spend_ceiling_usd
+    - period
+    - live_execution_enabled
+  request_may_relax_limits: false
+  policy_hard_floors_may_be_relaxed: false
+  null_in_overlay: inherit
+  period_values: [day, calendar_month]
+  period_timezone: UTC
+
+# Add application-keyed mappings using overlay_contract.allowed_fields.
+# Example shape (inactive documentation, not a configured application):
+# applications:
+#   example_app:
+#     model_tier_ceiling: L2
+#     task_cost_ceiling_usd: "0.25"
+#     task_deadline_ms: 30000
+#     live_execution_enabled: true
+applications: {}

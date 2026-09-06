@@ -1,5 +1,82 @@
 schema_version: 1
+version: validation-v1.0.0
+status: draft
+default_profile: V0
+raw_prompt_storage: false
+raw_response_storage: false
 
-# Validation profiles will map routes and risk classes to deterministic or
-# model-based checks.
-profiles: []
+profiles:
+  V0:
+    kind: deterministic
+    checks_when_applicable:
+      - json_schema
+      - expected_fields
+      - calculations_and_invariants
+      - compilation
+      - unit_tests
+      - tool_api_success
+    semantic_evaluator: null
+  V1:
+    kind: lightweight_semantic
+    base_profile: V0
+    evaluator_ref: lightweight
+  V2:
+    kind: strong_independent
+    base_profile: V0
+    evaluator_ref: strong_independent
+  V3:
+    kind: application_domain
+    base_profile: V0
+    validator_ref: null
+    required_semantic_profile: null
+    missing_validator: reject_execution
+
+evaluators:
+  lightweight:
+    enabled: false
+    model_alias: null
+    reasoning_effort: null
+    rubric_version: null
+    pass_threshold: null
+    independence: separate_call
+  strong_independent:
+    enabled: false
+    model_alias: null
+    reasoning_effort: null
+    rubric_version: null
+    pass_threshold: null
+    independence: separate_call_no_generator_self_grade
+# Model/rubric bindings and score scales are versioned configuration;
+# credentials and execution are adapter responsibilities.
+evaluator_boundary:
+  provider_interface: ModelProvider
+  budget_scope: production_task
+  missing_required_evaluator: reject_execution
+  evaluator_error_is_quality_failure: false
+  always_evaluate_every_task: false
+
+consequence_defaults:
+  low: {profile: V0, evidence: task_checks, approval_gate: false, execution_restrictions: []}
+  moderate: {profile: V1, evidence: supporting_evidence, approval_gate: false, execution_restrictions: []}
+  high: {profile: V2, evidence: independent_evidence, approval_gate: true, execution_restrictions: [no_unapproved_side_effects]}
+  critical: {profile: V3, evidence: domain_evidence, approval_gate: true, execution_restrictions: [no_unapproved_side_effects, domain_clearance_required]}
+consequence_changes_generation_tier: false
+
+shadow_evaluation:
+  enabled: false
+  sampling:
+    unit: task_id
+    method: deterministic_hash
+    seed: shadow-v1
+    rate: 0.0
+  output_visibility: telemetry_only
+  execute_side_effecting_tools: false
+  budget:
+    task_cost_ceiling_usd: null
+    period_spend_ceiling_usd: null
+  # Examples only; sampling stays disabled until Phase 4 setup.
+  comparisons:
+    - production: {model: terra, reasoning_effort: medium}
+      shadow: {model: sol, reasoning_effort: medium}
+    - production: {model: sol, reasoning_effort: high}
+      shadow: {model: terra, reasoning_effort: medium}

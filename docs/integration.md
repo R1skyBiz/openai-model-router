@@ -1,13 +1,102 @@
-# Integration
+# Integration v1
 
-Status: Bootstrap placeholder
+Status: Planned public contract; no endpoints or provider execution implemented.
 
-Integrations will call the application-independent routing API through explicit
-adapters. FastAPI will be the initial service boundary; provider and persistence
-details will remain behind interfaces.
+## Shared engine and boundaries
 
-## TODO
+Embedded callers and FastAPI call the same routing engine with the same normalized
+request and immutable configuration snapshots. The core accepts supplied
+classification and health/budget facts; adapters obtain those facts and translate
+framework/SDK/database types. See [architecture.md](architecture.md) for
+RouteDecision, RouteRejection and ModelProvider contracts.
 
-- Define the public service contract and authentication boundary.
-- Define provider adapter and persistence adapter interfaces.
-- Define local, test, and deployed configuration conventions.
+The embedded routing boundary is conceptually
+`route(request, classification, snapshots) -> RouteDecision | RouteRejection`.
+It performs no network I/O. The execution orchestration boundary is conceptually
+`execute(request, adapters) -> TaskResult`; it owns provider calls, recovery,
+validation, budget checks and event delivery. Concrete Python signatures and
+async conventions are Phase 1/2 design details.
+
+Initial adapters will be OpenAIProvider and MockProvider. MockProvider must
+simulate usage, failures, timeouts and validation outcomes without network or
+API credentials. Live-provider tests are isolated and opt-in. Framework-specific
+conveniences never introduce a second policy engine.
+
+## Minimum HTTP endpoints
+
+| Method/path | Request and response contract |
+| --- | --- |
+| POST /v1/route | Normalized task request; RouteDecision or RouteRejection. Does not execute task generation, task tools, validators or shadows. |
+| POST /v1/execute | Task request with idempotency/authorization controls; TaskResult including task/trace IDs, status, final output if succeeded, final decision and failure/validation references. |
+| GET /v1/tasks/{task_id} | Authorized task metadata and linked decisions, attempts, tool events, evaluations and costs; paginated child collections. |
+| GET /v1/telemetry/summary | Backend KPI aggregates, time window, filters, denominator counts, cost completeness and freshness. |
+| GET /v1/telemetry/models | Model/effort distributions, spend and efficacy aggregates with explicit route/attempt grain. |
+| GET /v1/telemetry/task-families | Family aggregates and family→model flow. |
+| GET /v1/telemetry/policies | Comparable policy cohorts, pinned versions, costs, success and escalation outcomes. |
+| GET /health/live | Process liveness only. |
+| GET /health/ready | Enabled-operation readiness and overall state, including safe DEGRADED mode. |
+| GET /health/components | Sanitized component/model/capability observations, freshness and circuit state. |
+
+Route-only may use the classifier adapter introduced in Phase 2 when no trusted
+classification is supplied; the HTTP adapter arrives in Phase 3. Any
+paid classification requires explicit routing/classification budget admission.
+Its cost is recorded with purpose=classification and task mode=preview; generation,
+task tools and evaluators remain forbidden. Supplied classification gives a fully
+offline route preview. A route preview is not authorization or a durable budget
+reservation for a later execute request.
+
+TaskResult status distinguishes succeeded, failed, cancelled and awaiting_approval;
+a failed check is not a successful result. Required validation/evidence must be
+complete before returning accepted output. Only production output reaches the
+caller; task explorer can expose shadow metadata with an explicit role label.
+
+Successful synchronous operations use 200; missing resources use 404; invalid
+input/schema uses 422; conflicting idempotency payload uses 409. Routing
+constraint rejections use 422 with a typed envelope; required unavailable
+dependencies use 503. Health readiness uses 200/503 for ready/not ready.
+A completed execution may return 200 with a failed TaskResult: HTTP transport
+success is not task success. Async jobs/streaming and their response semantics
+are unresolved and not required by this minimum contract.
+
+Errors carry task_id/trace_id when available, code, normalized failure_type where
+applicable, safe message, retryable flag, violated constraints and policy_version.
+Provider bodies and secrets must not leak into this envelope.
+
+## Admission and application policy
+
+Resolve a trusted application identity and its configuration overlay outside the
+core; callers cannot choose another application's permissions by sending an ID.
+Requests may tighten limits and validation but cannot relax authorized bounds.
+Keep authentication at the service/application boundary. Concrete deployment
+authentication and tenant authorization are Phase 6 decisions; enterprise IAM
+is a v1 non-goal.
+
+Pin policy, catalog, validation, budget and overlay versions at admission, and
+record the initial pricing quote. Before every paid invocation, capture the
+tariff effective for that invocation and recheck estimated cost, deadline,
+remaining budget, live health and required approval evidence. Retain changed
+price quotes as new decision/accounting facts without modifying the task's
+policy. A previously returned decision is not proof the model is still healthy
+or the caller can still afford execution.
+
+An idempotency key is scoped by trusted application identity and a normalized
+request digest. An identical retry returns the existing task/result; a different
+payload with that key is rejected. Retention and atomic storage mechanics are
+unresolved until execution/storage phases. Tool side effects require their own
+idempotency/reconciliation strategy; retries must not duplicate external actions.
+
+Applications provide tool/evidence/approval/domain-validator adapters or
+configuration, never `if application == ...` branches in the routing core.
+HTTP and embedded behavior must remain equivalent given the same snapshots.
+
+## Local and release conventions
+
+Use Python 3.12+, uv, Pydantic v2, FastAPI and SQLAlchemy/Alembic at their stated
+boundaries. Keep credentials in environment/secret injection, never config,
+request telemetry or committed fixtures. The existing .env.example remains the
+local convention; no key is required for bootstrap/Phase 1 tests.
+
+Backend analytics implement [telemetry.md](telemetry.md); the dashboard renders
+returned definitions and denominators. Integration hardening verifies version
+rollout/rollback, persistence recovery, privacy, permission boundaries, budget
+concurrency, compatibility and the production eval gate.

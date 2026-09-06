@@ -1,6 +1,178 @@
 schema_version: 1
+version: router-v1.0.0
+status: draft
+objective: effective_cost_per_successful_task
+catalog_version: models-v1.0.0
+budget_version: budgets-v1.0.0
+validation_version: validation-v1.0.0
+autonomous_policy_updates: false
 
-# Ordered routing rules and fallback behavior will be specified in Phase 1.
-objective: null
-default_route: null
-rules: []
+task_families:
+  - transform
+  - extract
+  - conversation
+  - writing
+  - knowledge
+  - analysis
+  - math
+  - engineering
+  - research
+  - coding
+  - debugging
+  - architecture
+  - planning
+  - data_analysis
+  - tool_workflow
+  - agentic
+complexity:
+  total_min: 0
+  total_max: 100
+  components:
+    reasoning_depth: {min: 0, max: 25}
+    step_dependency: {min: 0, max: 20}
+    context_synthesis: {min: 0, max: 15}
+    technical_precision: {min: 0, max: 15}
+    ambiguity: {min: 0, max: 10}
+    tool_orchestration: {min: 0, max: 10}
+    reliability_requirement: {min: 0, max: 5}
+  aggregation: sum
+  score_type: integer
+
+# Inclusive intervals; candidate order is the cold-start preference.
+# Priors are not eligibility ceilings or measured success predictions.
+complexity_bands:
+  - {min: 0, max: 20, candidates: [{model: luna, efforts: [none, low]}]}
+  - {min: 21, max: 40, candidates: [{model: luna, efforts: [low, medium]}, {model: terra, efforts: [low, medium]}]}
+  - {min: 41, max: 60, candidates: [{model: terra, efforts: [medium, high]}]}
+  - {min: 61, max: 75, candidates: [{model: terra, efforts: [high]}, {model: sol, efforts: [medium]}]}
+  - {min: 76, max: 88, candidates: [{model: sol, efforts: [high, xhigh]}]}
+  - {min: 89, max: 100, candidates: [{model: astra, efforts: [high, xhigh]}]}
+
+# Match semantics live in docs/configuration.md. Hard floors cannot be waived.
+task_family_floors:
+  - id: substantive_coding
+    match: {families: [coding], flags_all: [substantive_implementation]}
+    strength: hard
+    min_tier: L1
+    rationale_codes: [TASK_FAMILY_FLOOR]
+  - id: repository_wide_work
+    match: {families: [coding, debugging, architecture], flags_all: [repository_wide]}
+    strength: preferred
+    min_tier: L2
+    rationale_codes: [TASK_FAMILY_FLOOR]
+  - id: engineering_multivariable
+    match: {families: [engineering], flags_all: [multivariable]}
+    strength: preferred
+    min_tier: L1
+    rationale_codes: [TASK_FAMILY_FLOOR]
+  - id: engineering_complex
+    match: {families: [engineering], complexity_min: 60}
+    strength: preferred
+    min_tier: L2
+    rationale_codes: [ENGINEERING_COMPLEX, TASK_FAMILY_FLOOR]
+  - id: consequential_multi_system
+    match: {families: [agentic, tool_workflow], flags_all: [consequential_multi_system]}
+    strength: hard
+    min_tier: L1
+    rationale_codes: [TASK_FAMILY_FLOOR]
+  - id: long_horizon
+    match: {families: [agentic], flags_all: [long_horizon]}
+    strength: preferred
+    min_tier: L2
+    rationale_codes: [TASK_FAMILY_FLOOR]
+
+modifiers:
+  - id: exceptional_agentic
+    match: {families: [agentic], flags_all: [exceptional_end_to_end]}
+    effect: {add_candidates: [{model: astra, efforts: [high, xhigh]}]}
+    rationale_codes: [EXCEPTIONAL_AGENTIC]
+  - id: tools_heavy
+    match: {component_min: {tool_orchestration: 8}}
+    effect: {preferred_min_tier: L1}
+    rationale_codes: [TOOL_ORCHESTRATION_HIGH]
+  - id: precision
+    match: {component_min: {technical_precision: 12}}
+    effect: {annotate_only: true}
+    rationale_codes: [TECHNICAL_PRECISION_HIGH]
+  - id: multistep
+    match: {component_min: {step_dependency: 14}}
+    effect: {annotate_only: true}
+    rationale_codes: [MULTISTEP]
+
+selection:
+  cold_start: configured_candidate_order
+  calibrated: expected_cost_per_successful_task
+  calibration_version: null
+  tie_break: [candidate_order, estimated_cost, tier_rank, effort_order]
+  preferred_floor_relaxation: only_if_no_feasible_preferred_candidate
+  hard_constraint_conflict: reject
+  missing_classifier: require_classification
+  low_confidence: record_uncertainty_without_automatic_tier_jump
+  floor_candidate_effort_preference: [medium, high, low, xhigh, max, none]
+  constrained_fallback: eligible_models_by_tier_rank
+  latency: enforce_request_deadline_and_record_estimate_uncertainty
+
+context:
+  include_in_estimate: [input_tokens, cached_input_tokens, cache_write_tokens, expected_output_tokens, reasoning_tokens, retrieval_cost]
+  check_combined_context_and_output_limit: true
+  allow_silent_truncation: false
+  retrieval: explicit_application_strategy_only
+  cache_assumption: uncached_unless_evidenced
+  long_context_threshold_source: model_pricing
+health:
+  exclude_states: [UNHEALTHY]
+  degraded: allow_safe_alternate_with_rationale
+  account_availability: require_verification_for_live_execution
+
+escalation:
+  # Tune in Phase 3; unresolved limits block live execution, never unlimited.
+  limits:
+    max_total_generation_attempts: null
+    max_quality_escalations: null
+    max_infrastructure_retries: null
+    max_tool_recoveries: null
+    max_elapsed_ms: null
+  quality:
+    failure_types: [QUALITY_FAILURE]
+    steps: [increase_reasoning_effort, revalidate, increase_model_tier, revalidate]
+    revalidation_semantics: validate_new_attempt_before_next_escalation
+    tier_change_effort: reselect_from_policy
+  infrastructure:
+    failure_types: [TIMEOUT, RATE_LIMIT, PROVIDER_FAILURE]
+    steps: [retry, backoff, health_aware_fallback]
+    automatic_intelligence_escalation: false
+    fallback_tier: same_or_lower_within_hard_constraints
+    backoff: {initial_ms: null, max_ms: null, jitter: null, honor_retry_after: true}
+  tool:
+    failure_types: [TOOL_FAILURE]
+    steps: [retry_or_recover_tool, alternate_tool_or_strategy, recoverable_failure]
+    automatic_intelligence_escalation: false
+  diagnostic:
+    failure_types: [VALIDATION_FAILURE, MALFORMED_OUTPUT, UNKNOWN_FAILURE]
+    action: diagnose_before_quality_escalation
+  terminal:
+    failure_types: [BUDGET_FAILURE, CAPABILITY_FAILURE]
+    action: stop_with_structured_failure
+  stop_when: [success, budget_exhausted, deadline_exceeded, attempts_exhausted, no_safe_candidate, approval_required]
+
+rationale_codes:
+  BASELINE_PRIOR: Selected from configured complexity prior.
+  ENGINEERING_COMPLEX: Engineering complexity triggered the preferred floor.
+  TECHNICAL_PRECISION_HIGH: Technical precision modifier matched.
+  MULTISTEP: Step dependency modifier matched.
+  TOOL_ORCHESTRATION_HIGH: Tool orchestration modifier matched.
+  LONG_CONTEXT: Context crossed the selected model pricing threshold.
+  TASK_FAMILY_FLOOR: A task-family tier floor applied.
+  APPLICATION_BUDGET_CAP: Application constraints removed candidates.
+  MODEL_DEGRADED: Health degraded the preferred or selected route.
+  VALIDATION_REQUIRED: Selected validation requires named checks or an evaluator.
+  FLOOR_RELAXED: A preferred floor was waived after constrained feasibility checks.
+  EXCEPTIONAL_AGENTIC: Exceptional end-to-end work added an Astra candidate.
+  CAPABILITY_FILTER: Required capability removed candidates.
+  CONTEXT_CONSTRAINT: Context or output requirements removed candidates.
+  CONSTRAINED_FALLBACK: A candidate outside the baseline prior was selected.
+  QUALITY_ESCALATION: Confirmed quality failure increased effort or tier.
+  INFRASTRUCTURE_RECOVERY: Infrastructure recovery without automatic tier promotion.
+  TOOL_RECOVERY: Tool recovery without automatic tier promotion.
+  ESTIMATE_UNAVAILABLE: Required economic inputs are unverified or unknown.
+  LOW_CLASSIFIER_CONFIDENCE: Classification uncertainty is recorded for review.

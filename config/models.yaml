@@ -1,5 +1,164 @@
 schema_version: 1
+catalog_version: models-v1.0.0
+status: draft
+provider: openai
+currency: USD
+verification:
+  checked_at: "2026-09-06"
+  method: official_model_pages
+  scope: documented_metadata_not_account_access
+  live_account_probe_performed: false
 
-# Model entries will define provider model IDs, capabilities, pricing, and
-# supported reasoning levels. Keep those values out of Python modules.
-models: []
+# Standard text-token USD per 1M tokens, not all-in task costs.
+# null means unknown/requires verification, never zero or unlimited capability.
+# Unlisted capabilities are unknown. Each entry carries its own source.
+models:
+  luna:
+    tier: L0
+    tier_rank: 0
+    provider_model_id: gpt-5.6-luna
+    source_url: https://developers.openai.com/api/docs/models/gpt-5.6-luna
+    metadata_status: documentation_verified
+    reasoning_efforts: [none, low, medium, high, xhigh, max]
+    capabilities:
+      text_input: true
+      text_output: true
+      image_input: true
+      audio_input: false
+      video_input: false
+      streaming: true
+      function_calling: true
+      structured_outputs: true
+    context_window_tokens: 1050000
+    max_output_tokens: 128000
+    availability: {configured_enabled: true, account_status: requires_verification}
+    pricing:
+      version: luna-standard-2026-09-06
+      status: partially_verified
+      service_tier: standard
+      unit_tokens: 1000000
+      input_usd: "0.20"
+      cached_input_usd: "0.02"
+      output_usd: "1.20"
+      cache_write_input_multiplier: "1.25"
+      long_context:
+        input_tokens_gt: 272000
+        scope: full_request
+        input_multiplier: "2"
+        output_multiplier: "1.5"
+        cached_input_multiplier: null
+        cache_write_multiplier: null
+      additional_tool_prices: null
+      requires_verification: [long_context_cache_composition, tool_fees, nonstandard_service_tiers]
+  terra:
+    tier: L1
+    tier_rank: 1
+    provider_model_id: gpt-5.6-terra
+    source_url: https://developers.openai.com/api/docs/models/gpt-5.6-terra
+    metadata_status: documentation_verified
+    reasoning_efforts: [none, low, medium, high, xhigh, max]
+    capabilities:
+      text_input: true
+      text_output: true
+      image_input: true
+      audio_input: false
+      video_input: false
+      streaming: true
+      function_calling: true
+      structured_outputs: true
+    context_window_tokens: 1050000
+    max_output_tokens: 128000
+    availability: {configured_enabled: true, account_status: requires_verification}
+    pricing:
+      version: terra-standard-2026-09-06
+      status: partially_verified
+      service_tier: standard
+      unit_tokens: 1000000
+      input_usd: "2.00"
+      cached_input_usd: "0.20"
+      output_usd: "12.00"
+      cache_write_input_multiplier: "1.25"
+      long_context:
+        input_tokens_gt: 272000
+        scope: full_request
+        input_multiplier: "2"
+        output_multiplier: "1.5"
+        cached_input_multiplier: null
+        cache_write_multiplier: null
+      additional_tool_prices: null
+      requires_verification: [long_context_cache_composition, tool_fees, nonstandard_service_tiers]
+  sol:
+    tier: L2
+    tier_rank: 2
+    provider_model_id: gpt-5.6-sol
+    source_url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+    metadata_status: documentation_verified
+    reasoning_efforts: [none, low, medium, high, xhigh, max]
+    capabilities:
+      text_input: true
+      text_output: true
+      image_input: true
+      audio_input: false
+      video_input: false
+      streaming: true
+      function_calling: true
+      structured_outputs: true
+    context_window_tokens: 1050000
+    max_output_tokens: 128000
+    availability: {configured_enabled: true, account_status: requires_verification}
+    pricing:
+      version: sol-standard-2026-09-06
+      status: partially_verified
+      service_tier: standard
+      unit_tokens: 1000000
+      input_usd: "4.00"
+      cached_input_usd: "0.40"
+      output_usd: "20.00"
+      cache_write_input_multiplier: "1.25"
+      promotion_available_at_least_through: "2026-11-21"
+      long_context:
+        input_tokens_gt: 272000
+        scope: full_request
+        input_multiplier: "2"
+        output_multiplier: "1.5"
+        cached_input_multiplier: null
+        cache_write_multiplier: null
+      additional_tool_prices: null
+      requires_verification: [long_context_cache_composition, tool_fees, nonstandard_service_tiers, post_promotion_prices]
+  astra:
+    tier: L3
+    tier_rank: 3
+    provider_model_id: gpt-6-astra
+    source_url: https://developers.openai.com/api/docs/models/gpt-6-astra
+    metadata_status: documentation_verified
+    reasoning_efforts: [low, medium, high, xhigh, max]
+    capabilities:
+      text_input: true
+      text_output: true
+      image_input: true
+      audio_input: false
+      video_input: false
+      streaming: true
+      function_calling: true
+      structured_outputs: true
+    context_window_tokens: 1050000
+    max_output_tokens: 128000
+    availability: {configured_enabled: true, account_status: requires_verification}
+    pricing:
+      version: astra-standard-2026-09-06
+      status: partially_verified
+      service_tier: standard
+      unit_tokens: 1000000
+      input_usd: "10.00"
+      cached_input_usd: "1.00"
+      output_usd: "50.00"
+      cache_write_input_multiplier: "1.25"
+      long_context:
+        input_tokens_gt: 272000
+        scope: full_request
+        input_multiplier: "2"
+        output_multiplier: "1.5"
+        cached_input_multiplier: "2"
+        cache_write_multiplier: "2"
+      additional_tool_prices: null
+      requires_verification: [tool_fees, nonstandard_service_tiers]

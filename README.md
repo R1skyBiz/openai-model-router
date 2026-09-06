@@ -3,9 +3,14 @@
 A configuration-driven Python service for choosing an OpenAI model, reasoning
 level, validation strategy, and escalation path for each request.
 
-This repository currently contains the project bootstrap only. Routing and
-provider execution are intentionally deferred to the implementation phases
-documented under `docs/`.
+The bootstrap is complete and the v1 architecture contract is documented.
+The objective is Effective Cost per Successful Task. Routing and provider
+execution have not been implemented; Phase 1 has not started.
+
+Start with [implementation phases](docs/implementation-spec-v1.md),
+[architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
+and the [configuration reference](docs/configuration.md). Configuration contains
+draft v1 data with explicit verification gaps and disabled live execution.
 
 ## Requirements
 
@@ -26,11 +31,16 @@ cp .env.example .env
 
 The bootstrap tests do not need an OpenAI API key.
 
-## Validate the bootstrap
+## Validate the repository
 
 ```bash
 uv run pytest
+uv run python evals/run_local.py
 ```
+
+The current pytest suite checks the package import; the eval runner validates
+JSONL syntax only. The routing-envelope graders and production corpus are future
+phase work. Neither command currently proves runtime routing behavior.
 
 ## Repository map
 

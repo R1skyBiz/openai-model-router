@@ -10,5 +10,13 @@ Run the bootstrap validator with:
 uv run python evals/run_local.py
 ```
 
-The runner currently validates JSONL syntax only. Graders and result schemas
-will be defined with the Phase 1 routing contracts. No OpenAI API key is needed.
+The runner currently validates JSONL syntax only. It does not grade routing
+behavior; empty case files are valid scaffold input. No OpenAI API key is needed.
+
+The architecture contract defines the [eval philosophy](../docs/routing-policy-v1.md#evals-and-activation)
+and [phase gates](../docs/implementation-spec-v1.md). The next dedicated eval step
+will define acceptable model/effort envelopes and deterministic hard-constraint
+graders. Before production v1, at least 100 cases must cover all task families,
+thresholds, budgets, tool/provider failures, long context, escalation and
+must-not-use-Astra scenarios. The architecture-contract task does not generate
+that corpus or implement its graders.
