@@ -1,6 +1,7 @@
 # Integration v1
 
-Status: Planned public contract; no endpoints or provider execution implemented.
+Status: Embedded route-only API implemented in Phase 1. HTTP endpoints and
+provider execution remain planned.
 
 ## Shared engine and boundaries
 
@@ -10,12 +11,14 @@ classification and health/budget facts; adapters obtain those facts and translat
 framework/SDK/database types. See [architecture.md](architecture.md) for
 RouteDecision, RouteRejection and ModelProvider contracts.
 
-The embedded routing boundary is conceptually
-`route(request, classification, snapshots) -> RouteDecision | RouteRejection`.
+The embedded routing boundary is
+`route(request, classification, environment_snapshot, policy_bundle) -> RouteDecision | RouteRejection`
+in `model_router.router`; inputs are the frozen records in `model_router.core`
+and a validated bundle from `model_router.policy.loader.load_bundle`.
 It performs no network I/O. The execution orchestration boundary is conceptually
 `execute(request, adapters) -> TaskResult`; it owns provider calls, recovery,
-validation, budget checks and event delivery. Concrete Python signatures and
-async conventions are Phase 1/2 design details.
+validation, budget checks and event delivery. Execution signatures and async
+conventions remain later-phase design details.
 
 Initial adapters will be OpenAIProvider and MockProvider. MockProvider must
 simulate usage, failures, timeouts and validation outcomes without network or

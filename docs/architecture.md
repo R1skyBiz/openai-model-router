@@ -1,6 +1,7 @@
 # Architecture v1
 
-Status: Accepted architecture contract; runtime implementation has not begun.
+Status: Accepted architecture contract; Phase 1 route-only implementation exists.
+Execution and external adapters remain future work. See [Phase 1 report](phase-1-report.md).
 
 ## Mission and ownership
 
@@ -46,7 +47,8 @@ Application orchestration owns execution, bounded recovery, validation,
 idempotency, deadlines, budget reservations, and event delivery through ports.
 Adapters own network I/O, credentials, persistence and health probes. The existing
 `src/model_router/` scaffold is preserved; exact future module layout can evolve
-without changing this dependency direction. No implementation is supplied here.
+without changing this dependency direction. Phase 1 implements the pure routing
+and configuration boundaries; this document remains the broader contract.
 
 ## Canonical routing pipeline
 

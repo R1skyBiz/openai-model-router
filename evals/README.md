@@ -2,14 +2,18 @@
 
 This pre-Phase-1 contract contains **179 authored cases**, including 56 normal
 routing cases and 19 future classification seeds. It defines acceptable behavior
-before a router exists. The offline grader evaluates supplied hypothetical
+before a router existed. The independent offline grader evaluates supplied
 observations; it does not route requests, call providers, classify text, run
 validators or execute recovery. No API key or network is required.
 
 The approved architecture is pinned at `f3e8c70`. See
 [ADR 0009](../docs/decisions/0009-pre-phase-1-evaluation-contract.md) for the phase
 boundary and [coverage and audit](coverage.md) for the reviewed distribution.
-The draft files under `config/` and `src/model_router/` remain unchanged.
+The draft files under `config/` and authored expectations remain unchanged.
+Phase 1 now supplies the separate [adapter](phase1_adapter.py) and
+[runner](run_phase1.py): `uv run python evals/run_phase1.py`. It runs all 142
+cases with supplied classification and no recovery script, and reports all 37
+future-phase skips. The original grader and its fixtures remain independent.
 
 ## Run
 

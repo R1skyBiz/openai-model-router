@@ -1,6 +1,7 @@
 # Configuration reference v1
 
-Status: Normative document/schema contract; a typed loader is Phase 1 work.
+Status: Normative document/schema contract; the Phase 1 typed loader implements
+this contract in `model_router.policy.loader`.
 
 ## Ownership and versioning
 
@@ -15,6 +16,16 @@ Paths above are relative to `config/`. Documents define semantics; YAML owns
 numeric policy values and tunable defaults. Do not maintain a second policy
 table in Python, dashboards, or eval graders. Evals may independently express
 expected constraints to detect policy regressions.
+
+The Phase 1 loader accepts `load_bundle(config_directory)` and returns a deeply
+immutable snapshot. Derived-candidate effort preferences must support every
+enabled model, required cost-accounting buckets cannot be omitted, and the
+rationale registry must describe every runtime code. Profile inheritance cannot
+understate its required validation level. Non-null domain-validator references
+are rejected until a later-phase registry can resolve them; Phase 1 can consume
+synthetic mock readiness facts instead. An active live policy additionally needs
+active referenced snapshots, finite task bounds, bounded recovery, and known
+base prices for enabled eligible models. Loading does not activate a policy.
 
 Every file has integer `schema_version` and string `status`; each has `version`
 except the registry's `catalog_version`. Current files are draft snapshots.
@@ -152,7 +163,10 @@ Do not loosen required capability, privacy, or authorization constraints.
 
 V0 checks run only when applicable. V1/V2 evaluator model/effort, rubric version,
 score scale and pass threshold must be configured before required evaluation can
-execute. V2 uses an independent call without the generator's self-assessment;
+execute. The loader represents `score_scale` as finite numeric `min` and `max`
+bounds and requires the threshold to fall within them. Disabled unbound
+evaluators may omit the scale; no default scale is invented.
+V2 uses an independent call without the generator's self-assessment;
 a different model may be configured but is not implied by the label alone.
 V3 requires an application/domain validator and may also require V1 or V2.
 It is domain specialization, not a guarantee that every V1/V2 check is inherited.

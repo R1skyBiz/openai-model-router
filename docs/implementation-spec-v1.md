@@ -1,7 +1,8 @@
 # Implementation specification v1
 
-Status: Authoritative architecture contract. Phase 0 is complete; Phase 1 has
-not started. This document defines future work, not implemented features.
+Status: Authoritative staged implementation contract. Phase 0 and the Phase 1
+route-only implementation are complete; [Phase 1 verification](phase-1-report.md)
+records its exit evidence. Phase 2 has not begun.
 
 ## Mission and release boundaries
 
