@@ -1,0 +1,754 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "contains",
+            "excludes",
+            "between"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why": {
+          "minLength": 1,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "op",
+        "value",
+        "why"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Classification": {
+      "additionalProperties": false,
+      "properties": {
+        "task_family": {
+          "minLength": 1,
+          "title": "Task Family",
+          "type": "string"
+        },
+        "components": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Components",
+          "type": "object"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "flags": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Flags",
+          "type": "object"
+        },
+        "provenance": {
+          "default": "eval-author-v1",
+          "minLength": 1,
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_family",
+        "components",
+        "confidence"
+      ],
+      "title": "Classification",
+      "type": "object"
+    },
+    "Context": {
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "default": 1000,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "expected_output_tokens": {
+          "default": 1000,
+          "minimum": 0,
+          "title": "Expected Output Tokens",
+          "type": "integer"
+        },
+        "cached_input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cached Input Tokens",
+          "type": "integer"
+        },
+        "cache_write_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cache Write Tokens",
+          "type": "integer"
+        },
+        "cache_evidence": {
+          "default": false,
+          "title": "Cache Evidence",
+          "type": "boolean"
+        }
+      },
+      "title": "Context",
+      "type": "object"
+    },
+    "Environment": {
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "default": "offline-v1",
+          "minLength": 1,
+          "title": "Snapshot",
+          "type": "string"
+        },
+        "health_scenario": {
+          "default": "healthy",
+          "minLength": 1,
+          "title": "Health Scenario",
+          "type": "string"
+        },
+        "budget_scenario": {
+          "default": "ample",
+          "minLength": 1,
+          "title": "Budget Scenario",
+          "type": "string"
+        },
+        "overrides": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Overrides",
+          "type": "object"
+        },
+        "application_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Limits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "application_overlay_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application Overlay Version"
+        }
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "Expected": {
+      "additionalProperties": false,
+      "properties": {
+        "routing_result": {
+          "enum": [
+            "valid",
+            "rejected",
+            "not_applicable"
+          ],
+          "title": "Routing Result",
+          "type": "string"
+        },
+        "acceptable_model_efforts": {
+          "items": {
+            "$ref": "#/$defs/Pair"
+          },
+          "title": "Acceptable Model Efforts",
+          "type": "array"
+        },
+        "forbidden_models": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Forbidden Models",
+          "type": "array"
+        },
+        "minimum_tier": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Tier"
+        },
+        "maximum_tier": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Tier"
+        },
+        "validation_profile": {
+          "anyOf": [
+            {
+              "enum": [
+                "V0",
+                "V1",
+                "V2",
+                "V3"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Validation Profile"
+        },
+        "required_rationale_codes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Required Rationale Codes",
+          "type": "array"
+        },
+        "forbidden_rationale_codes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Forbidden Rationale Codes",
+          "type": "array"
+        },
+        "expected_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "QUALITY_FAILURE",
+                "VALIDATION_FAILURE",
+                "TOOL_FAILURE",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "PROVIDER_FAILURE",
+                "MALFORMED_OUTPUT",
+                "BUDGET_FAILURE",
+                "CAPABILITY_FAILURE",
+                "UNKNOWN_FAILURE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Failure"
+        },
+        "acceptable_failure_types": {
+          "items": {
+            "enum": [
+              "QUALITY_FAILURE",
+              "VALIDATION_FAILURE",
+              "TOOL_FAILURE",
+              "TIMEOUT",
+              "RATE_LIMIT",
+              "PROVIDER_FAILURE",
+              "MALFORMED_OUTPUT",
+              "BUDGET_FAILURE",
+              "CAPABILITY_FAILURE",
+              "UNKNOWN_FAILURE"
+            ],
+            "type": "string"
+          },
+          "title": "Acceptable Failure Types",
+          "type": "array"
+        },
+        "execution_readiness": {
+          "enum": [
+            "ready",
+            "blocked",
+            "not_applicable"
+          ],
+          "title": "Execution Readiness",
+          "type": "string"
+        },
+        "cost_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "known",
+                "partial",
+                "unavailable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Status"
+        },
+        "expected_recovery": {
+          "items": {
+            "$ref": "#/$defs/TraceStep"
+          },
+          "title": "Expected Recovery",
+          "type": "array"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "acceptable_task_families": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Acceptable Task Families",
+          "type": "array"
+        },
+        "forbidden_task_families": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Forbidden Task Families",
+          "type": "array"
+        },
+        "flags": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Flags",
+          "type": "object"
+        },
+        "component_envelopes": {
+          "additionalProperties": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "title": "Component Envelopes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "routing_result",
+        "execution_readiness"
+      ],
+      "title": "Expected",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Limits": {
+      "additionalProperties": false,
+      "properties": {
+        "model_tier_floor": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Tier Floor"
+        },
+        "model_tier_ceiling": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Tier Ceiling"
+        },
+        "task_cost_ceiling_usd": {
+          "anyOf": [
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Cost Ceiling Usd"
+        },
+        "task_deadline_ms": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Deadline Ms"
+        },
+        "live_execution_enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Live Execution Enabled"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "Pair": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "effort": {
+          "minLength": 1,
+          "title": "Effort",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "effort"
+      ],
+      "title": "Pair",
+      "type": "object"
+    },
+    "Request": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "minLength": 1,
+          "title": "Input",
+          "type": "string"
+        },
+        "consequence": {
+          "default": "low",
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "critical"
+          ],
+          "title": "Consequence",
+          "type": "string"
+        },
+        "requirements": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "constraints": {
+          "$ref": "#/$defs/Limits"
+        },
+        "application_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application Id"
+        },
+        "approval_evidence": {
+          "default": false,
+          "title": "Approval Evidence",
+          "type": "boolean"
+        },
+        "side_effecting_tool": {
+          "default": false,
+          "title": "Side Effecting Tool",
+          "type": "boolean"
+        },
+        "idempotency_evidence": {
+          "default": false,
+          "title": "Idempotency Evidence",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "Request",
+      "type": "object"
+    },
+    "Scenario": {
+      "additionalProperties": false,
+      "properties": {
+        "initial_route": {
+          "$ref": "#/$defs/Pair"
+        },
+        "events": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "limits": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Limits",
+          "type": "object"
+        }
+      },
+      "required": [
+        "initial_route",
+        "events",
+        "limits"
+      ],
+      "title": "Scenario",
+      "type": "object"
+    },
+    "TraceStep": {
+      "additionalProperties": false,
+      "properties": {
+        "failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "QUALITY_FAILURE",
+                "VALIDATION_FAILURE",
+                "TOOL_FAILURE",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "PROVIDER_FAILURE",
+                "MALFORMED_OUTPUT",
+                "BUDGET_FAILURE",
+                "CAPABILITY_FAILURE",
+                "UNKNOWN_FAILURE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Failure"
+        },
+        "action": {
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pair"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated": {
+          "title": "Validated",
+          "type": "boolean"
+        },
+        "original_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "QUALITY_FAILURE",
+                "VALIDATION_FAILURE",
+                "TOOL_FAILURE",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "PROVIDER_FAILURE",
+                "MALFORMED_OUTPUT",
+                "BUDGET_FAILURE",
+                "CAPABILITY_FAILURE",
+                "UNKNOWN_FAILURE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Failure"
+        }
+      },
+      "required": [
+        "failure",
+        "action",
+        "route",
+        "validated"
+      ],
+      "title": "TraceStep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "routing",
+        "classification",
+        "constraint",
+        "recovery",
+        "health",
+        "budget",
+        "context_cache",
+        "validation",
+        "overlay",
+        "anti_overrouting"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "basis": {
+      "minLength": 1,
+      "title": "Basis",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "request": {
+      "$ref": "#/$defs/Request"
+    },
+    "classification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Classification"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "scenario": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Scenario"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "expected": {
+      "$ref": "#/$defs/Expected"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "category",
+    "description",
+    "basis",
+    "tags",
+    "request",
+    "classification",
+    "environment",
+    "expected"
+  ],
+  "title": "Case",
+  "type": "object"
+}

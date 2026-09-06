@@ -34,9 +34,13 @@ branches on application identity. V1 does not autonomously rewrite policy.
 
 For routing changes, add deterministic acceptable-envelope eval coverage with
 hard constraints, including routes that must not use Astra. Respect the current
-phase: architecture-only work does not generate the future full corpus.
-Run the existing offline checks; report their actual scope rather than claiming
-the JSONL syntax validator proves routing quality. Live calls remain opt-in.
+phase: the dedicated pre-Phase-1 evaluation contract is authorized separately
+from architecture-only work and implements no runtime routing or provider calls.
+Use [the eval guide](../../evals/README.md) for the independent corpus, schemas,
+and offline grader. Never derive expected routes from routing implementation or
+candidate tables. Run positive and intentionally invalid fixtures plus the
+offline checks; report fixture grading separately from real routing quality.
+Live calls remain opt-in.
 Preserve task/attempt separation, eventual telemetry, raw-content-off defaults
 and secret exclusion.
 

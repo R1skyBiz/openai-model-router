@@ -1,0 +1,59 @@
+{
+  "families": [
+    "transform",
+    "extract",
+    "conversation",
+    "writing",
+    "knowledge",
+    "analysis",
+    "math",
+    "engineering",
+    "research",
+    "coding",
+    "debugging",
+    "architecture",
+    "planning",
+    "data_analysis",
+    "tool_workflow",
+    "agentic"
+  ],
+  "components": {
+    "reasoning_depth": 25,
+    "step_dependency": 20,
+    "context_synthesis": 15,
+    "technical_precision": 15,
+    "ambiguity": 10,
+    "tool_orchestration": 10,
+    "reliability_requirement": 5
+  },
+  "flags": [
+    "substantive_implementation",
+    "repository_wide",
+    "multivariable",
+    "consequential_multi_system",
+    "long_horizon",
+    "exceptional_end_to_end"
+  ],
+  "rationale_codes": [
+    "BASELINE_PRIOR",
+    "ENGINEERING_COMPLEX",
+    "TECHNICAL_PRECISION_HIGH",
+    "MULTISTEP",
+    "TOOL_ORCHESTRATION_HIGH",
+    "LONG_CONTEXT",
+    "TASK_FAMILY_FLOOR",
+    "APPLICATION_BUDGET_CAP",
+    "MODEL_DEGRADED",
+    "VALIDATION_REQUIRED",
+    "FLOOR_RELAXED",
+    "EXCEPTIONAL_AGENTIC",
+    "CAPABILITY_FILTER",
+    "CONTEXT_CONSTRAINT",
+    "CONSTRAINED_FALLBACK",
+    "QUALITY_ESCALATION",
+    "INFRASTRUCTURE_RECOVERY",
+    "TOOL_RECOVERY",
+    "ESTIMATE_UNAVAILABLE",
+    "LOW_CLASSIFIER_CONFIDENCE"
+  ]
+}

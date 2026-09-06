@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "architecture_commit": "f3e8c70",
+  "policy_version": "router-v1.0.0",
+  "catalog_version": "models-v1.0.0",
+  "pricing_snapshot": "approved-standard-text-2026-09-06",
+  "sha256": {
+    "config/budgets.yaml": "e3c2d15cafb6ef92ece4201b6cfd4a4a0725887a765fdc6e90a20e25d5c22f3b",
+    "config/models.yaml": "b8445b7f7426f64acb4af0d80414ed42d9f1f94731bb39f70eb4f7c5e439340a",
+    "config/routing-policy.yaml": "09a78d3de960dee30b79b5b550f6b4c2ffe23a386998bfeee582aa42a6be6b13",
+    "config/validation.yaml": "4e1b0fc7d180247de17f255a1c9522cbc8087864ab87d2da29e3537bf17ea998"
+  }
+}

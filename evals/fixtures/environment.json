@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "id": "offline-v1",
+  "synthetic": true,
+  "clock": "2026-09-06T20:00:00Z",
+  "pricing_snapshot": "approved-standard-text-2026-09-06",
+  "catalog": "config/models.yaml",
+  "health": {
+    "snapshot_id": "synthetic-health-v1",
+    "observed_at": "2026-09-06T19:59:00Z",
+    "valid_until": "2026-09-06T20:05:00Z",
+    "models": {
+      "luna": {
+        "state": "HEALTHY",
+        "account_access": "verified",
+        "usable": true
+      },
+      "terra": {
+        "state": "HEALTHY",
+        "account_access": "verified",
+        "usable": true
+      },
+      "sol": {
+        "state": "HEALTHY",
+        "account_access": "verified",
+        "usable": true
+      },
+      "astra": {
+        "state": "HEALTHY",
+        "account_access": "verified",
+        "usable": true
+      }
+    }
+  },
+  "budget": {
+    "remaining_usd": "10.00",
+    "task_cost_ceiling_usd": "10.00",
+    "task_deadline_ms": 30000,
+    "live_execution_enabled": true
+  },
+  "validation": {
+    "V0": "configured_mock",
+    "V1": "unconfigured",
+    "V2": "unconfigured",
+    "V3": "unconfigured"
+  },
+  "recovery": {
+    "max_total_generation_attempts": 3,
+    "max_quality_escalations": 2,
+    "max_infrastructure_retries": 1,
+    "max_tool_recoveries": 1,
+    "max_elapsed_ms": 30000,
+    "initial_backoff_ms": 100,
+    "max_backoff_ms": 1000
+  },
+  "tool_charges": "unknown_unless_overridden",
+  "telemetry": {
+    "raw_prompt_storage": false,
+    "raw_response_storage": false,
+    "durable_retention": true
+  }
+}

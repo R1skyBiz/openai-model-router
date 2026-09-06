@@ -144,5 +144,6 @@ Before production v1, at least 100 cases must represent every family, threshold
 boundaries, budgets, tool/provider failures, long context, escalation, and
 must-not-use-Astra cases. Compare policy versions on the same cohort and report
 uncertainty, success and cost together. Runtime policy never rewrites itself.
-The dedicated eval corpus is future work; the existing runner currently checks
-JSONL syntax only.
+The [dedicated pre-Phase-1 eval corpus](../evals/README.md) now supplies independent
+envelopes and deterministic grading of hypothetical observations. It does not
+implement or demonstrate a working router.

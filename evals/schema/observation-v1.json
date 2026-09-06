@@ -1,0 +1,355 @@
+{
+  "$defs": {
+    "Classification": {
+      "additionalProperties": false,
+      "properties": {
+        "task_family": {
+          "minLength": 1,
+          "title": "Task Family",
+          "type": "string"
+        },
+        "components": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Components",
+          "type": "object"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "flags": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Flags",
+          "type": "object"
+        },
+        "provenance": {
+          "default": "eval-author-v1",
+          "minLength": 1,
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_family",
+        "components",
+        "confidence"
+      ],
+      "title": "Classification",
+      "type": "object"
+    },
+    "Cost": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "known",
+            "partial",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "const": "USD",
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "amount"
+      ],
+      "title": "Cost",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Pair": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "effort": {
+          "minLength": 1,
+          "title": "Effort",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "effort"
+      ],
+      "title": "Pair",
+      "type": "object"
+    },
+    "TraceStep": {
+      "additionalProperties": false,
+      "properties": {
+        "failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "QUALITY_FAILURE",
+                "VALIDATION_FAILURE",
+                "TOOL_FAILURE",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "PROVIDER_FAILURE",
+                "MALFORMED_OUTPUT",
+                "BUDGET_FAILURE",
+                "CAPABILITY_FAILURE",
+                "UNKNOWN_FAILURE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Failure"
+        },
+        "action": {
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pair"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validated": {
+          "title": "Validated",
+          "type": "boolean"
+        },
+        "original_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "QUALITY_FAILURE",
+                "VALIDATION_FAILURE",
+                "TOOL_FAILURE",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "PROVIDER_FAILURE",
+                "MALFORMED_OUTPUT",
+                "BUDGET_FAILURE",
+                "CAPABILITY_FAILURE",
+                "UNKNOWN_FAILURE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Failure"
+        }
+      },
+      "required": [
+        "failure",
+        "action",
+        "route",
+        "validated"
+      ],
+      "title": "TraceStep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "routing_result": {
+      "enum": [
+        "valid",
+        "rejected",
+        "not_applicable"
+      ],
+      "title": "Routing Result",
+      "type": "string"
+    },
+    "policy_version": {
+      "minLength": 1,
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "selected_model_alias": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Model Alias"
+    },
+    "model_tier": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Tier"
+    },
+    "reasoning_effort": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reasoning Effort"
+    },
+    "validation_level": {
+      "anyOf": [
+        {
+          "enum": [
+            "V0",
+            "V1",
+            "V2",
+            "V3"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Validation Level"
+    },
+    "rationale_codes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Rationale Codes",
+      "type": "array"
+    },
+    "failure_type": {
+      "anyOf": [
+        {
+          "enum": [
+            "QUALITY_FAILURE",
+            "VALIDATION_FAILURE",
+            "TOOL_FAILURE",
+            "TIMEOUT",
+            "RATE_LIMIT",
+            "PROVIDER_FAILURE",
+            "MALFORMED_OUTPUT",
+            "BUDGET_FAILURE",
+            "CAPABILITY_FAILURE",
+            "UNKNOWN_FAILURE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Type"
+    },
+    "execution_readiness": {
+      "enum": [
+        "ready",
+        "blocked",
+        "not_applicable"
+      ],
+      "title": "Execution Readiness",
+      "type": "string"
+    },
+    "estimated_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Cost"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "classification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Classification"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "recovery": {
+      "items": {
+        "$ref": "#/$defs/TraceStep"
+      },
+      "title": "Recovery",
+      "type": "array"
+    },
+    "facts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Facts",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "case_id",
+    "routing_result",
+    "policy_version",
+    "execution_readiness"
+  ],
+  "title": "Observation",
+  "type": "object"
+}

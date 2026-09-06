@@ -14,7 +14,10 @@ Numeric routing policy belongs in config; backend KPI definitions belong in
 [telemetry.md](telemetry.md).
 
 This architecture-contract step replaces bootstrap placeholders, populates draft
-configuration and records settled decisions. It adds no runtime routing, provider,
+configuration and records settled decisions. The subsequent dedicated
+[evaluation contract](../evals/README.md), recorded in
+[ADR 0009](decisions/0009-pre-phase-1-evaluation-contract.md), supplies independent
+cases and an offline grader before Phase 1. These steps add no runtime routing, provider,
 database, health, dashboard or shadow execution. Budget, recovery, evaluator and
 deployment values explicitly marked unresolved must be resolved before the
 corresponding enabled execution path is accepted.
@@ -40,7 +43,8 @@ corresponding enabled execution path is accepted.
   capability filtering, component aggregation, configured priors/floors/modifiers,
   constraints, effort/validation selection, cost estimates and rationale codes.
   Embedded route entry point consumes supplied classification and mock snapshots.
-  Define envelope case schema and deterministic graders in a dedicated eval step.
+  Consume the envelope case schema and deterministic graders established in the
+  dedicated pre-Phase-1 eval step.
 - **Explicit non-goals:** LLM classifier, OpenAI execution, recovery execution,
   SQL persistence, HTTP service implementation, active health probes, semantic
   validators, shadow execution or dashboard.

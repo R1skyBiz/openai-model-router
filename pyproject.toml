@@ -27,6 +27,7 @@ packages = ["src/model_router"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+pythonpath = [".", "src"]
 
 [tool.uv]
 package = true

@@ -38,9 +38,11 @@ uv run pytest
 uv run python evals/run_local.py
 ```
 
-The current pytest suite checks the package import; the eval runner validates
-JSONL syntax only. The routing-envelope graders and production corpus are future
-phase work. Neither command currently proves runtime routing behavior.
+The pytest suite checks imports and the independent offline grader. The
+[pre-Phase-1 evaluation contract](evals/README.md) contains 179 cases, strict
+schemas, acceptable envelopes, and passing/invalid hypothetical observations.
+The runner validates the corpus and can grade supplied observations; neither
+command claims that runtime routing has been implemented.
 
 ## Repository map
 
