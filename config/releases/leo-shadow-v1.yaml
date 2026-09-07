@@ -1,0 +1,118 @@
+# EXAMPLE ONLY: unresolved private references deliberately fail closed.
+# Generate a new operator composition with scripts/compose_leo_preview.py.
+# Never replace zero digests with guessed evidence or rewrite this example in place.
+schema_version: 1
+release_id: leo-shadow-v1.0.0
+policy:
+  directory: ../../.release/leo-shadow-v1/policy
+  content_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+  versions:
+    policy: operator-verified-policy-v1
+    catalog: operator-verified-catalog-v1
+    budgets: operator-verified-budgets-v1
+    validation: operator-verified-validation-v1
+operations:
+  route: false
+  read: false
+  execute: false
+  health: true
+  live_provider: false
+  live_classifier: true
+  tools: false
+  shadow: false
+  modalities:
+  - text
+  validation_profiles:
+  - V0
+  classify_route: true
+limits:
+  max_preview_records: 100
+  allocation_id: leo-shadow-v1-preview-allocation
+  application_cost_ceiling_usd: '0.05'
+  task_cost_ceiling_usd: '0.01'
+  task_deadline_ms: 60000
+  provider_timeout_ms: 30000
+  max_input_tokens: 8192
+  max_output_tokens: 2048
+  max_concurrent_tasks: 2
+  actions:
+    max_total_generation_attempts: 3
+    max_quality_escalations: 1
+    max_infrastructure_retries: 1
+    max_tool_recoveries: 0
+    max_classifier_attempts: 1
+    max_validation_attempts: 1
+  backoff:
+    initial_ms: 100
+    maximum_ms: 2000
+    honor_retry_after: true
+auth:
+  mode: application_bearer_sha256
+  credentials_env: LEO_ROUTER_APPLICATION_CREDENTIALS_JSON
+  required_scopes:
+  - classify_route
+  - health
+  minimum_token_bytes: 32
+database:
+  url_env: MODEL_ROUTER_DATABASE_URL
+  journal_path_env: MODEL_ROUTER_JOURNAL_PATH
+  allowed_dialects:
+  - sqlite
+  - postgresql
+  required_migration_revision: 0004_routing_previews
+  connect_timeout_ms: 3000
+  pool_size: 8
+outbox:
+  delivery: at_least_once
+  batch_size: 100
+  lease_ms: 30000
+  max_delivery_attempts: 10
+  retry_backoff_ms: 1000
+  max_pending_events: 10000
+  event_id_deduplication: true
+evaluators:
+  mode: deterministic_v0_only
+  required_refs: []
+  timeout_ms: 5000
+  max_attempts: 1
+health:
+  config_version: leo-shadow-health-v1
+  required_components:
+  - configuration
+  - database
+  - telemetry
+  - classifier
+  freshness_ms: 3600000
+  check_timeout_ms: 3000
+  failure_window_ms: 30000
+  failure_threshold: 3
+  cooldown_ms: 10000
+  half_open_max_probes: 1
+  recovery_success_threshold: 1
+  max_probes_per_run: 4
+  probe_timeout_ms: 1000
+  live_probes_enabled: false
+  paid_probes_enabled: false
+retention:
+  raw_prompt_storage: false
+  raw_response_storage: false
+  task_metadata_days: 30
+  idempotency_days: 90
+  outbox_days: 30
+  budget_evidence: indefinite
+  policy_and_pricing_evidence: indefinite
+  automatic_destructive_pruning: false
+live:
+  provider: openai
+  credential_env: OPENAI_API_KEY
+  service_tier: standard
+  evidence:
+    path: ../../.release/leo-shadow-v1/account-evidence.yaml
+    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    version: operator-verified-account-evidence-v1
+  evidence_max_age_hours: 24
+  classifier_config:
+    path: ../../.release/leo-shadow-v1/classifier.yaml
+    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    version: operator-verified-classifier-v1
+  classifier_input_overhead_tokens: 1024

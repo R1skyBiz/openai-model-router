@@ -43,10 +43,17 @@ class ExecuteBody(BaseModel):
     idempotency_key: Annotated[str, Field(min_length=1)] | None = None
 
 
+class ClassifyRouteBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request: Request
+    idempotency_key: Annotated[str, Field(min_length=1, max_length=256, pattern=r"\S")]
+
+
 def create_app(
     dependencies: ExecutionDependencies,
     *,
     trusted_application_id: str | None = None,
+    preview=None,
 ) -> FastAPI:
     """Create an HTTP adapter around one explicit dependency composition."""
 
@@ -56,6 +63,41 @@ def create_app(
         raise ValueError("trusted_application_id must be non-empty")
 
     app = FastAPI(title="OpenAI Model Router", version="1")
+
+    @app.post("/v1/classify-route")
+    def preview_request(body: ClassifyRouteBody):
+        from model_router.execution.preview import classify_route, PreviewUnavailable
+        from model_router.core.preview_contracts import PreviewCapacityExceeded
+        if trusted_application_id is None:
+            return _error_response(401, "authentication_required", "Authentication is required.")
+        request = _trusted_request(body.request, trusted_application_id)
+        if request is None:
+            return _error_response(422, "caller_application_id_forbidden",
+                "Application identity is resolved from the authenticated credential.")
+        if preview is None:
+            return _error_response(503, "preview_disabled", "Paid routing preview is unavailable.")
+        if request.policy_version not in (None, preview.bundle.policy['version']):
+            return _error_response(422, "policy_version_mismatch", "The requested policy is not active.")
+        try:
+            value = classify_route(request, body.idempotency_key, preview)
+        except IdempotencyConflict:
+            return _error_response(409, "idempotency_conflict", "The preview key or task already exists.")
+        except PreviewCapacityExceeded:
+            return _error_response(429, "preview_capacity_exhausted", "The preview evidence allocation is exhausted.")
+        except (PreviewUnavailable, RepositoryUnavailable):
+            return _error_response(503, "preview_unavailable", "Paid routing preview is unavailable.")
+        status = 200 if value.status == 'completed' else 409 if value.status in {
+            'claimed', 'started', 'accounted', 'uncertain'} else 422
+        return JSONResponse(status_code=status, content=value.model_dump(mode='json'))
+
+    @app.get("/v1/previews/{preview_id}")
+    def get_preview(preview_id: str):
+        if trusted_application_id is None:
+            return _error_response(401, "authentication_required", "Authentication is required.")
+        value = preview.repository.get(preview_id, trusted_application_id) if preview else None
+        if value is None:
+            return _error_response(404, "preview_not_found", "The preview was not found.")
+        return value.model_dump(mode='json')
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(_request, _error):

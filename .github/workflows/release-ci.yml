@@ -63,7 +63,7 @@ jobs:
           url = os.environ["POSTGRES_TEST_DATABASE_URL"]
           upgrade_database(url)
           with create_engine(url).connect() as connection:
-              assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_phase6_durable_storage"
+              assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0004_routing_previews"
           downgrade_database(url)
           upgrade_database(url)
           PY

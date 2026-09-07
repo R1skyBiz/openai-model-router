@@ -94,7 +94,7 @@ def test_postgres_migration_restart_idempotency_and_outbox_ownership(
     assert restarted.claim_outbox("worker-b", limit=10) == ()
     assert not restarted.ack_outbox(first[0].event_id, owner_id="worker-b")
     assert restarted.ack_outbox(first[0].event_id, owner_id="worker-a")
-    assert restarted.current_migration_revision() == "0003_phase6_durable_storage"
+    assert restarted.current_migration_revision() == "0004_routing_previews"
 
 
 def test_postgres_concurrent_budget_admission(postgres_url: str, tmp_path: Path):
@@ -119,3 +119,42 @@ def test_postgres_cross_process_duplicate_execute_dispatches_once(postgres_url,t
         statuses=workers.map(_duplicate_execute_worker,[(postgres_url,str(tmp_path),i) for i in range(4)])
     assert 'succeeded' in statuses
     assert (tmp_path/'dispatches').read_text().splitlines()==['dispatched']
+
+
+def test_postgres_preview_claim_isolation_and_retention(postgres_url,tmp_path):
+    from model_router.core.preview_contracts import RoutingPreview
+    from model_router.storage.previews import SQLPreviewRepository
+    from model_router.core.execution_contracts import IdempotencyConflict
+    now = datetime.now(UTC)
+    def value(index,application='preview-app'):
+        return RoutingPreview(preview_id=f'preview-pg-{application}-{index}',application_id=application,
+            task_id='shared-task-id',trace_id='shared-trace',status='claimed',created_at=now,updated_at=now,
+            release_version='release',release_sha256='release-hash',activation_id='activation',
+            account_evidence_id='account',policy_version='policy',catalog_version='catalog',pricing_version='price',
+            classifier_version='classifier',classifier_configuration_hash='hash')
+    def claim(index):
+        repo = _repository(postgres_url,tmp_path/f'preview-{index}.jsonl')
+        try:
+            SQLBudgetAuthority(repo,'preview-app','preview-allocation:classify-route','0.05','0.01')
+            return SQLPreviewRepository(repo,'preview-allocation:classify-route',100).claim(value(index),'key','request')
+        finally:
+            repo.engine.dispose()
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(claim,range(4)))
+    assert sum(result is None for result in results) == 1
+    retained = next(result for result in results if result is not None)
+    repo = _repository(postgres_url,tmp_path/'preview-restart.jsonl')
+    previews = SQLPreviewRepository(repo,'preview-allocation:classify-route',100)
+    SQLBudgetAuthority(repo,'other','preview-allocation:classify-route','0.05','0.01')
+    assert previews.get(retained.preview_id,'preview-app') == retained
+    assert previews.get(retained.preview_id,'other') is None
+    assert previews.claim(value(9,'other'),'key','request') is None
+    with pytest.raises(IdempotencyConflict): previews.claim(value(10),'key','changed')
+    budget = SQLBudgetAuthority(repo,'preview-app','preview-allocation:classify-route','0.05','0.01')
+    assert budget.reserve(retained.preview_id,'classifier','0.005')
+    started = retained.model_copy(update={'status':'started','cost_status':'unknown','reserved_cost_usd':Decimal('0.005')})
+    previews.save(retained,started)
+    assert previews.claim(value(11),'key','request') == started
+    budget.settle(retained.preview_id,'classifier',None)
+    assert budget.remaining(retained.preview_id) == Decimal('0.005')
+    repo.engine.dispose()

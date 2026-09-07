@@ -137,10 +137,10 @@ def test_migration_preserves_history_and_round_trips_phase6(tmp_path: Path):
             )
     upgrade_database(url)
     current = SQLTaskRepository(url, journal_path=tmp_path / "pending.jsonl")
-    assert current.current_migration_revision() == "0003_phase6_durable_storage"
+    assert current.current_migration_revision() == "0004_routing_previews"
     with Session(current.engine) as session:
         assert [row.sequence for row in session.scalars(select(OutboxRow).order_by(OutboxRow.sequence))] == [1, 2]
     downgrade_database(url, "0002_phase4_verification")
     assert "sequence" not in {column["name"] for column in inspect(current.engine).get_columns("outbox")}
     upgrade_database(url)
-    assert current.current_migration_revision() == "0003_phase6_durable_storage"
+    assert current.current_migration_revision() == "0004_routing_previews"

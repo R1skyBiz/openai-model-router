@@ -74,6 +74,8 @@ def _response_fields(response: object | None) -> dict[str, object]:
         "response_id": _safe_identifier(_read(response, "id"), kind="response") if response is not None else None,
         "response_status": status,
         "returned_model_id": _safe_identifier(_read(response, "model"), kind="model") if response is not None else None,
+        "returned_service_tier": (_read(response, "service_tier")
+            if _read(response, "service_tier") in ("default", "flex", "priority", "auto", "scale") else None),
         "usage": _usage(response),
     }
 

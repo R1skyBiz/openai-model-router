@@ -33,7 +33,7 @@ PositiveInt = Annotated[StrictInt, Field(gt=0)]
 NonNegativeInt = Annotated[StrictInt, Field(ge=0)]
 Digest = Annotated[StrictStr, Field(pattern=r"^[0-9a-f]{64}$")]
 EnvName = Annotated[StrictStr, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")]
-Scope = Literal["route", "read", "execute", "health"]
+Scope = Literal["route", "read", "execute", "health", "classify_route"]
 
 
 class PolicyVersions(Record):
@@ -56,6 +56,7 @@ class FileReference(Record):
 
 
 class Operations(Record):
+    classify_route: StrictBool = False
     route: StrictBool
     read: StrictBool
     execute: StrictBool
@@ -75,8 +76,10 @@ class Operations(Record):
             raise ValueError("live_provider requires execute")
         if self.execute and not self.live_provider:
             raise ValueError("execute requires the explicitly guarded live provider")
-        if self.live_classifier and not (self.execute and self.live_provider):
-            raise ValueError("live_classifier requires execute and live_provider")
+        if self.live_classifier and not (self.execute or self.classify_route):
+            raise ValueError("live_classifier requires execute or classify_route")
+        if self.classify_route and not self.live_classifier:
+            raise ValueError("classify_route requires live_classifier")
         if self.execute and (
             self.modalities != ("text",)
             or self.validation_profiles != ("V0",)
@@ -86,7 +89,7 @@ class Operations(Record):
             raise ValueError(
                 "initial execution support is standard text V0 with tools and shadow disabled"
             )
-        if not self.execute and (self.live_provider or self.live_classifier):
+        if not (self.execute or self.classify_route) and (self.live_provider or self.live_classifier):
             raise ValueError("disabled execution cannot enable live operations")
         return self
 
@@ -113,6 +116,7 @@ class BackoffLimits(Record):
 
 
 class OperationalLimits(Record):
+    max_preview_records: PositiveInt | None = None
     allocation_id: Name
     application_cost_ceiling_usd: PositiveMoney
     task_cost_ceiling_usd: PositiveMoney
@@ -264,11 +268,15 @@ class ReleaseConfig(Record):
     def cross_block_invariants(self):
         enabled_scopes = {
             name
-            for name in ("route", "read", "execute", "health")
+            for name in ("route", "read", "execute", "health", "classify_route")
             if getattr(self.operations, name)
         }
         if not enabled_scopes.issubset(set(self.auth.required_scopes)):
             raise ValueError("auth scopes must cover every enabled operation")
+        if self.operations.classify_route and self.limits.max_preview_records is None:
+            raise ValueError("classify_route requires a finite preview record allocation")
+        if self.operations.classify_route and self.database.required_migration_revision != "0004_routing_previews":
+            raise ValueError("classify_route requires the preview migration")
         live_enabled = self.operations.live_provider or self.operations.live_classifier
         if live_enabled and self.live.evidence is None:
             raise ValueError("enabled live operations require immutable live evidence")
@@ -353,6 +361,7 @@ class PreflightReport(Record):
 
 
 class ActivationReport(Record):
+    paid_classifier_enabled: StrictBool | None = None
     activation_id: Name
     release_id: Name
     release_sha256: Digest

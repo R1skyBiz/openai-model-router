@@ -119,6 +119,7 @@ def _enabled_operations(release: LoadedRelease) -> tuple[str, ...]:
         name
         for name in (
             "route",
+            "classify_route",
             "read",
             "execute",
             "health",
@@ -326,7 +327,7 @@ def preflight(
 
     scopes = set(config.auth.required_scopes)
     enabled_scopes = {
-        name for name in ("route", "read", "execute", "health") if getattr(operations, name)
+        name for name in ("route", "read", "execute", "health", "classify_route") if getattr(operations, name)
     }
     _check(
         checks,
@@ -617,7 +618,9 @@ def activate(
         raise ActivationBlocked(result)
     live = release.config.operations.live_provider
     scope = (
-        "standard-text V0 live classifier and generation"
+        "paid classifier-only routing preview; generation disabled"
+        if release.config.operations.classify_route and not live
+        else "standard-text V0 live classifier and generation"
         if release.config.operations.live_classifier
         else "standard-text V0 live generation"
         if live
@@ -641,6 +644,7 @@ def activate(
         enabled_operations=result.enabled_operations,
         operation_scope=scope,
         live_execution_enabled=live,
+        paid_classifier_enabled=release.config.operations.live_classifier,
         manifest=manifest,
         checks=result.checks,
     )

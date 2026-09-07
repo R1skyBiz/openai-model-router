@@ -105,7 +105,17 @@ class LoadedRelease:
 
     @property
     def canonical_manifest(self) -> Mapping[str, Any]:
-        return thaw(self.config.model_dump(mode="python", exclude_none=False))
+        return _manifest(self.config)
+
+
+def _manifest(config):
+    value = thaw(config.model_dump(mode="python", exclude_none=False))
+    # Preserve hashes and activation receipts for historical manifests.
+    if "classify_route" not in config.operations.model_fields_set:
+        value["operations"].pop("classify_route")
+    if "max_preview_records" not in config.limits.model_fields_set:
+        value["limits"].pop("max_preview_records")
+    return value
 
 
 def _policy_versions(bundle: PolicyBundle) -> dict[str, str]:
@@ -171,7 +181,7 @@ def load_release(path: str | Path) -> LoadedRelease:
         if classifier_config.version != reference.version:
             raise ReleaseConfigurationError("classifier config version does not match manifest")
 
-    release_hash = sha256(_canonical_bytes(config.model_dump(mode="python"))).hexdigest()
+    release_hash = sha256(_canonical_bytes(_manifest(config))).hexdigest()
     return LoadedRelease(
         source=source,
         config=config,

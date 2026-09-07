@@ -76,6 +76,7 @@ class ProviderEvidence(Record):
     response_id: Name | None = None
     response_status: Literal["completed", "failed", "in_progress", "cancelled", "queued", "incomplete"] | None = None
     returned_model_id: Name | None = None
+    returned_service_tier: Literal["default", "flex", "priority", "auto", "scale"] | None = None
     latency_ms: Annotated[float, Field(ge=0, allow_inf_nan=False)]
     usage: ProviderUsage = Field(default_factory=ProviderUsage)
 

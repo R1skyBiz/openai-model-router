@@ -51,6 +51,9 @@ def verify_archives(directory: Path) -> tuple[Path, Path]:
         assert "model_router/storage/alembic/env.py" in names
         assert "model_router/storage/alembic/script.py.mako" in names
         assert any(name.endswith("0003_phase6_durable_storage.py") for name in names)
+        assert any(name.endswith("0004_routing_previews.py") for name in names)
+        assert "model_router/execution/preview.py" in names
+        assert "model_router/storage/previews.py" in names
         assert "model_router/dashboard/index.html" in names
         assert any(name.startswith("model_router/dashboard/assets/") for name in names)
         assert not any("__pycache__" in name or name.endswith(".pyc") for name in names)
@@ -60,6 +63,8 @@ def verify_archives(directory: Path) -> tuple[Path, Path]:
         assert any(name.endswith("/hatch_build.py") for name in names)
         assert any(name.endswith("/dashboard/dist/index.html") for name in names)
         assert any(name.endswith("/migrations/versions/0003_phase6_durable_storage.py") for name in names)
+        assert any(name.endswith("/config/releases/leo-shadow-v1.yaml") for name in names)
+        assert any(name.endswith("/scripts/compose_leo_preview.py") for name in names)
         assert not any("node_modules/" in name or "__pycache__" in name for name in names)
     return wheel, sdist
 
@@ -96,6 +101,10 @@ url = 'sqlite+pysqlite:///' + str(Path(sys.argv[2]) / 'installed.db')
 upgrade_database(url)
 downgrade_database(url)
 upgrade_database(url)
+from sqlalchemy import create_engine, inspect
+assert 'routing_previews' in inspect(create_engine(url)).get_table_names()
+from model_router.execution.preview import classify_route
+from model_router.storage.previews import SQLPreviewRepository
 from model_router.release.cli import main
 assert callable(main)
 """

@@ -69,7 +69,12 @@ def run(directory, *, concurrency=8, requests=80, dataset=1000):
     from model_router.release import load_release,activate
     from model_router.release.runtime import build_app,collect_evidence
     release=load_release(Path(__file__).resolve().parents[1]/'config/releases/route-only-v1.yaml')
-    env={'MODEL_ROUTER_DATABASE_URL':str(deps.repository.engine.url),'LOAD_TOKEN':token,
+    # Historical manifests retain their pinned schema; the current synthetic
+    # workload uses the latest migration in a different disposable database.
+    from model_router.storage.migrations import migrate_database
+    release_url='sqlite+pysqlite:///' + str(directory/'route-only.db')
+    migrate_database(release_url,release.config.database.required_migration_revision)
+    env={'MODEL_ROUTER_DATABASE_URL':release_url,'LOAD_TOKEN':token,
         'MODEL_ROUTER_APPLICATION_CREDENTIALS_JSON':json.dumps({'load':{'token_env':'LOAD_TOKEN','scopes':['route','read','health']}})}
     receipt=directory/'activation.json'
     journal=directory/'release-journal.jsonl'

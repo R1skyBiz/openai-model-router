@@ -222,3 +222,9 @@ disabled by default. See [the report](docs/phase-4-report.md),
 
 Run `uv run --offline pytest`, `uv run --offline python evals/run_phase4.py --combined`,
 and `uv run --offline python evals/run_phase4.py --regressions`.
+
+Paid classifier-only previews are available through the separately authenticated
+`POST /v1/classify-route` surface. See [preview integration and accounting](docs/classify-route.md)
+for the LEO example, dedicated token scope, finite allocations, idempotency and
+operator activation. `/v1/route` remains free and requires supplied classification;
+`/v1/execute` retains its existing contract.

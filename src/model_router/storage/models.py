@@ -21,6 +21,21 @@ class Base(DeclarativeBase):
     pass
 
 
+class RoutingPreviewRow(Base):
+    __tablename__ = "routing_previews"
+    __table_args__ = (
+        UniqueConstraint("application_id", "key_digest", name="uq_preview_scope_key"),
+        UniqueConstraint("application_id", "task_id", name="uq_preview_scope_task"),
+    )
+    preview_id: Mapped[str] = mapped_column(String, primary_key=True)
+    allocation_id: Mapped[str] = mapped_column(String, nullable=False)
+    application_id: Mapped[str] = mapped_column(String, nullable=False)
+    task_id: Mapped[str] = mapped_column(String, nullable=False)
+    key_digest: Mapped[str] = mapped_column(String, nullable=False)
+    request_digest: Mapped[str] = mapped_column(String, nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class TaskRow(Base):
     __tablename__ = "tasks"
     __table_args__ = (

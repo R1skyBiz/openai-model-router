@@ -96,6 +96,8 @@ def build_app(release, activation_path, journal_path, environment=None):
     expected_id='activation-'+sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     if (receipt.activation_id != expected_id or receipt.activated_at > datetime.now(UTC)
             or receipt.enabled_operations != report.enabled_operations
+            or (receipt.paid_classifier_enabled is not None
+                and receipt.paid_classifier_enabled != release.config.operations.live_classifier)
             or receipt.live_execution_enabled != release.config.operations.live_provider
             or tuple(c.name for c in receipt.checks) != tuple(c.name for c in report.checks)):
         raise ValueError('activation receipt is incomplete or altered')
@@ -126,8 +128,13 @@ def build_app(release, activation_path, journal_path, environment=None):
         return {'ready':status.ready,'state':'HEALTHY' if status.ready else 'UNHEALTHY',
             'enabled_operations':list(status.enabled_operations),'blockers':list(status.blockers),
             'components':list(facts.healthy_components),'checked_at':status.checked_at.isoformat(),
-            'live_execution_enabled':config.operations.live_provider}
+            'live_execution_enabled':config.operations.live_provider,
+            'paid_classifier_enabled':config.operations.live_classifier}
     records=[]
+    preview_provider = None
+    if config.operations.classify_route:
+        from model_router.execution.openai_provider import OpenAIProvider
+        preview_provider = OpenAIProvider(release.policy_bundle, api_key=env[config.live.credential_env])
     for credential in parse_application_credentials(release,env):
         app_id=credential['application_id']
         def snapshot(identity=app_id):
@@ -153,10 +160,29 @@ def build_app(release, activation_path, journal_path, environment=None):
         deps=ExecutionDependencies(bundle=release.policy_bundle,environment=snapshot,provider=provider,
             repository=repo,budget=budget,clock=clock,limits=limits,
             controls=ExecutionControls(authorized=config.operations.execute),live=application_live,release_readiness=readiness)
+        preview = None
+        if config.operations.classify_route:
+            from model_router.execution.preview import PreviewDependencies
+            from model_router.storage.previews import SQLPreviewRepository
+            preview_budget = SQLBudgetAuthority(repo, app_id,
+                config.limits.allocation_id + ':classify-route',
+                str(config.limits.application_cost_ceiling_usd), str(config.limits.task_cost_ceiling_usd))
+            preview = PreviewDependencies(application_id=app_id, bundle=release.policy_bundle,
+                release_sha256=release.release_sha256, activation_id=receipt.activation_id,
+                account_evidence_id=release.live_evidence.evidence_id,
+                environment=snapshot, classifier_config=release.classifier_config,
+                classifier_provider=preview_provider,
+                authorization=LiveExecutionAuthorization(config.release_id,
+                    config.limits.max_input_tokens, config.live.classifier_input_overhead_tokens, check,
+                    max_output_tokens=config.limits.max_output_tokens,
+                    provider_timeout_ms=config.limits.provider_timeout_ms),
+                repository=SQLPreviewRepository(repo, preview_budget.allocation_id, config.limits.max_preview_records),
+                budget=preview_budget, clock=clock,
+                deadline_ms=config.limits.task_deadline_ms)
         # Scopes are an intersection, so disabled operations cannot be exposed by
         # an accidentally overprivileged credential record.
         scopes=frozenset(s for s in credential['scopes'] if getattr(config.operations,s))
-        records.append(AuthenticatedApplication(app_id,credential['credential_digest'],deps,scopes))
+        records.append(AuthenticatedApplication(app_id,credential['credential_digest'],deps,scopes,preview))
     app=create_authenticated_app(applications=records)
     service=ReleaseService(app,release,check)
     service.applications=tuple(records)

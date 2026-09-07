@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from asyncio import timeout
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from hmac import compare_digest
@@ -18,8 +19,8 @@ from model_router.execution.orchestrator import ExecutionDependencies
 from .app import create_app
 
 
-Scope = Literal["route", "read", "execute", "health"]
-_SCOPES = frozenset({"route", "read", "execute", "health"})
+Scope = Literal["route", "read", "execute", "health", "classify_route"]
+_SCOPES = frozenset({"route", "read", "execute", "health", "classify_route"})
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 
 
@@ -41,6 +42,7 @@ class AuthenticatedApplication:
     credential_digest: str
     dependencies: ExecutionDependencies
     scopes: frozenset[Scope]
+    preview: object | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.application_id, str) or not self.application_id.strip():
@@ -51,6 +53,8 @@ class AuthenticatedApplication:
             raise ValueError("credential_digest must be a lowercase SHA-256 hex digest")
         if not isinstance(self.dependencies, ExecutionDependencies):
             raise TypeError("dependencies must be an ExecutionDependencies instance")
+        if self.preview is not None and self.preview.application_id != self.application_id:
+            raise ValueError("preview application scope mismatch")
         normalized = frozenset(self.scopes)
         unknown = normalized - _SCOPES
         if unknown:
@@ -79,6 +83,7 @@ def create_authenticated_app(
             create_app(
                 _scope_dependencies(record.dependencies, record.application_id),
                 trusted_application_id=record.application_id,
+                preview=record.preview,
             ),
         )
         for record in records
@@ -147,6 +152,43 @@ class _AuthenticatedDispatcher:
         if required is not None and required not in selected[0].scopes:
             await _auth_error(403, "permission_denied")(scope, receive, send)
             return
+
+        if path == "/v1/classify-route" and selected[0].preview is not None:
+            # Bound the whole ingress body, including caller correlation IDs,
+            # before JSON decoding or persistence. No Content-Length trust.
+            maximum = selected[0].preview.authorization.max_input_tokens
+            body = bytearray()
+            size = 0
+            try:
+                async with timeout(selected[0].preview.deadline_ms / 1000):
+                    while True:
+                        message = await receive()
+                        if message['type'] == 'http.disconnect':
+                            return
+                        if message['type'] != 'http.request':
+                            await JSONResponse(status_code=400, content={
+                                'code': 'invalid_preview_body', 'retryable': False})(scope, receive, send)
+                            return
+                        size += len(message.get('body', b''))
+                        if size > maximum:
+                            await JSONResponse(status_code=413, content={
+                                'code': 'preview_body_too_large', 'retryable': False})(scope, receive, send)
+                            return
+                        body.extend(message.get('body', b''))
+                        if not message.get('more_body', False):
+                            break
+            except TimeoutError:
+                await JSONResponse(status_code=408, content={
+                    'code': 'preview_body_timeout', 'retryable': False})(scope, receive, send)
+                return
+            delivered = False
+            async def bounded_receive():
+                nonlocal delivered
+                if not delivered:
+                    delivered = True
+                    return {'type': 'http.request', 'body': bytes(body), 'more_body': False}
+                return {'type': 'http.disconnect'}
+            receive = bounded_receive
 
         response_started = False
 
@@ -237,6 +279,8 @@ def _authorization_header(scope: ASGIScope) -> str | None:
 
 
 def _required_scope(path: str) -> Scope | None:
+    if path == "/v1/classify-route" or path.startswith("/v1/previews/"):
+        return "classify_route"
     if path == "/v1/route":
         return "route"
     if path == "/v1/execute":
