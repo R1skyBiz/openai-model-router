@@ -29,3 +29,10 @@ evals/results/*
 # Local execution evidence (never source artifacts)
 /model-router.db*
 /model-router-pending.jsonl
+
+# Isolated synthetic dashboard evidence and frontend builds
+/.demo/
+dashboard/node_modules/
+dashboard/dist/
+dashboard/coverage/
+dashboard/*.tsbuildinfo

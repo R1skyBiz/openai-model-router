@@ -11,8 +11,9 @@ is the transparent cold-start prior until success estimates are calibrated.
 Phase 2 adds a task classifier and a provider adapter for one Responses API call.
 Phase 3 adds bounded mock execution, recovery, SQLite evidence and HTTP adapters.
 Phase 4 adds independent validation, scoped health and bounded shadow comparison.
-Production remains disabled and Phase 5 has not begun. See the
-[Phase 4 report](docs/phase-4-report.md) for verification and limitations.
+Phase 5 adds read-only telemetry analytics and a local React dashboard.
+Production remains disabled. See the [Phase 5 report](docs/phase-5-report.md)
+for verification and limitations. Phase 6 has not begun.
 
 Start with [implementation phases](docs/implementation-spec-v1.md),
 [architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
@@ -23,6 +24,7 @@ draft v1 data with explicit verification gaps and disabled live execution.
 
 - Python 3.12 or newer
 - [uv](https://docs.astral.sh/uv/)
+- Node.js 22+ and npm for the optional local dashboard
 
 ## Setup
 
@@ -38,6 +40,44 @@ cp .env.example .env
 
 Default tests and all phase eval runners require no OpenAI API key or network.
 Install dependencies once; use `uv run --offline` for subsequent verification.
+
+## Local telemetry dashboard
+
+The dashboard reads persisted evidence through typed APIs. Its six pages cover
+Overview, Spend, Routing, Efficacy, Health, and Tasks, with UTC filters, policy
+comparisons and safe execution timelines. See [metric definitions](docs/phase-5-metrics.md)
+and the [API contract](docs/phase-5-interfaces.md).
+
+Generate explicitly synthetic local evidence and start the read-only API:
+
+```bash
+uv sync --extra dev
+uv run --offline python scripts/generate_sample_data.py
+uv run --offline python scripts/serve_demo.py
+```
+
+In another terminal:
+
+```bash
+cd dashboard
+npm ci
+npm run dev
+```
+
+Open [the local dashboard](http://127.0.0.1:5173). Vite proxies `/v1` to the local
+API at port 8000. The API schema is available at
+[local API docs](http://127.0.0.1:8000/docs). The demo server exposes telemetry
+reads only. No API key is needed, and no provider call runs.
+
+The generator writes `.demo/synthetic-demo.sqlite3` and an integrity manifest.
+Every sample is marked synthetic; costs and scores are fabricated examples.
+Generation never overwrites an existing database. For a new date window, use
+`--output /path/to/new-demo` and serve it with `--data /path/to/new-demo`.
+Health freshness ages normally after generation; it is never refreshed by a read.
+Generated databases and frontend build artifacts are ignored by Git.
+
+For UI verification, run `npm test`, `npm run typecheck`, and `npm run build`
+from `dashboard/`. Backend analytics and API tests run in the ordinary pytest suite.
 
 ## Validate the repository
 

@@ -1,0 +1,13 @@
+# Deliberately fabricated display evidence. These are not tariffs or routing defaults.
+version: synthetic-demo-v1
+applications: [synthetic-studio, synthetic-research, synthetic-support]
+policy_versions: [synthetic-demo-policy-a, synthetic-demo-policy-b]
+validation_costs: {V0: '0', V1: '0.009', V2: '0.025'}
+tool_cost: '0.003'
+shadow_cost: '0.021'
+scenarios:
+  - {family: transform, score: 10, model: luna, effort: low, cost: '0.0018', validation: V0}
+  - {family: analysis, score: 49, model: terra, effort: medium, cost: '0.028', validation: V1, recovery_effort: high}
+  - {family: engineering, score: 70, model: sol, effort: medium, cost: '0.047', validation: V2}
+  - {family: architecture, score: 90, model: astra, effort: high, cost: '0.23', validation: V2}
+  - {family: analysis, score: 49, model: terra, effort: high, cost: '0.054', validation: V1}

@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3",
+  "uvicorn>=0.30",
 ]
 
 [tool.hatch.build.targets.wheel]

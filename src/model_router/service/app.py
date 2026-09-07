@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Annotated, Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -218,7 +218,66 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
         return _task_projection(task, include_output=task.status == TaskStatus.SUCCEEDED)
 
     @app.get("/v1/tasks/{task_id}")
-    def task_request(task_id: str):
+    def task_request(
+        task_id: str,
+        view: str | None = None,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        start: str | None = None,
+        end: str | None = None,
+        application: str | None = None,
+        model: str | None = None,
+        effort: str | None = None,
+        task_family: str | None = None,
+        policy_version: str | None = None,
+        status: str | None = None,
+    ):
+        if view is not None:
+            if view != "timeline":
+                return _error_response(
+                    422,
+                    "invalid_view",
+                    "Only the timeline task view is supported.",
+                    task_id=task_id,
+                )
+            try:
+                detail = app.state.telemetry_query.task_detail(
+                    task_id,
+                    {
+                        "start": start,
+                        "end": end,
+                        "application": application,
+                        "model": model,
+                        "effort": effort,
+                        "task_family": task_family,
+                        "policy_version": policy_version,
+                        "status": status,
+                    },
+                    offset=offset,
+                    limit=limit,
+                )
+            except ValueError:
+                return _error_response(
+                    422,
+                    "invalid_filter",
+                    "The telemetry query is not valid.",
+                    task_id=task_id,
+                )
+            except RepositoryUnavailable:
+                return _error_response(
+                    503,
+                    "dependency_unavailable",
+                    "Telemetry storage is unavailable.",
+                    task_id=task_id,
+                )
+            if detail is None:
+                return _error_response(
+                    404,
+                    "task_not_found",
+                    "The requested task was not found.",
+                    task_id=task_id,
+                )
+            return detail
         try:
             task = dependencies.repository.get(task_id)
         except RepositoryUnavailable:
@@ -237,6 +296,9 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
             )
         return _task_projection(task, include_output=False)
 
+    from model_router.service.telemetry import register_telemetry
+
+    register_telemetry(app, dependencies)
     return app
 
 

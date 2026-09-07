@@ -1,0 +1,23 @@
+/** Phase 5 frozen wire contract. Money is decimal text; analytics belong to Python. */
+export interface Cost { amount: string | null; known_subtotal: string; missing_count: number; status: 'known' | 'partial' | 'unavailable' }
+export interface Rate { value: number | null; numerator: number; denominator: number }
+export interface Meta { metric_definition_version: string; start: string; end: string; generated_at: string; freshness: string | null; synthetic: boolean; currency: 'USD'; filters: Record<string, string | null>; notes: string[] }
+export interface Filters { start?: string; end?: string; application?: string; model?: string; effort?: string; task_family?: string; policy_version?: string; status?: string }
+export interface Metrics { total_tasks: number; terminal_tasks: number; pending_tasks: number; cancelled_tasks: number; blocked_tasks: number; successful_tasks: number; first_pass_success: Rate; final_success: Rate; escalation_rate: Rate; infrastructure_retry_rate: Rate; tool_recovery_rate: Rate; cost: Cost; cost_per_task: Cost; effective_cost_per_success: Cost; p50_latency_ms: number | null; p95_latency_ms: number | null }
+export interface Summary { meta: Meta; metrics: Metrics; spend_today: Cost; spend_mtd: Cost; projected_month: Cost; forecast_method: string; policy_versions: string[] }
+export interface SpendPoint { date: string; production: Cost; shadow: Cost; cumulative_production: Cost }
+export interface SpendGroup { key: string; cost: Cost; count: number }
+export interface Spend { meta: Meta; production: Cost; shadow: Cost; all_spend: Cost; unallocated: Cost; series: SpendPoint[]; by_model: SpendGroup[]; by_effort: SpendGroup[]; by_application: SpendGroup[]; by_task_family: SpendGroup[]; by_policy: SpendGroup[]; by_purpose: SpendGroup[]; by_contribution: SpendGroup[] }
+export interface Distribution { key: string; count: number; share: number | null }
+export interface Flow { source: string; target: string; count: number }
+export interface Routing { meta: Meta; models: Distribution[]; efforts: Distribution[]; complexities: Distribution[]; task_families: Distribution[]; validations: Distribution[]; rationale_codes: Distribution[]; family_model_flow: Flow[]; escalation_flow: Flow[]; preferred_floor_relaxation: Rate; constrained_fallback: Rate; trend: { date: string; first_pass_success: Rate; final_success: Rate; effective_cost_per_success: Cost }[] }
+export interface Quality { comparable: boolean; reason: string | null; groups: { rubric_version: string; check: string; score_min: number; score_max: number; mean: number; sample_size: number; role: string }[] }
+export interface Cohort { key: string; model: string | null; effort: string | null; policy_version: string | null; metrics: Metrics; quality: Quality; insufficient_sample: boolean }
+export interface Efficacy { meta: Meta; cohorts: Cohort[] }
+export interface Policies { meta: Meta; cohorts: Cohort[]; comparison_note: string }
+export interface HealthComponent { component: string; model: string | null; capability: string | null; state: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY' | 'STALE' | 'UNKNOWN'; observed_at: string | null; valid_until: string | null; circuit_state: string; failure_count: number; latency_ms: number | null; required: boolean }
+export interface Health { meta: Meta; state: HealthComponent['state']; production_ready: false; readiness_note: string; components: HealthComponent[]; outbox_pending: number; oldest_pending_at: string | null; p50_latency_ms: number | null; p95_latency_ms: number | null; failure_rate: Rate; timeouts: number; rate_limits: number; degraded_periods: { start: string; end: string | null; component: string; state: string }[] }
+export interface TaskItem { task_id: string; created_at: string; application: string | null; task_family: string | null; complexity: number | null; model: string | null; effort: string | null; status: string; cost: Cost; latency_ms: number | null; escalated: boolean; policy_version: string; synthetic: boolean }
+export interface TaskList { meta: Meta; items: TaskItem[]; total: number; offset: number; limit: number }
+export interface TimelineStep { id: string; kind: string; timestamp: string | null; title: string; model: string | null; effort: string | null; rationale_codes: string[]; tokens: Record<string, number | null>; cost: Cost | null; latency_ms: number | null; validation: string | null; failure_type: string | null; recovery_action: string | null; health_snapshot_id: string | null; policy_version: string | null; pricing_version: string | null; role: string; metadata: Record<string, string | number | boolean | null> }
+export interface TaskDetail { meta: Meta; task: TaskItem; timeline: TimelineStep[]; total: number; offset: number; limit: number }

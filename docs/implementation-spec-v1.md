@@ -5,7 +5,8 @@ Status: Authoritative staged implementation contract. Phases 0–2 are complete;
 record their exit evidence. Live paths remain disabled. Phase 3 offline execution is implemented; see the
 [Phase 3 report](phase-3-report.md) for the explicit evaluator scenario deferral.
 Phase 4 offline validation, health and shadow isolation are implemented; see
-[Phase 4 report](phase-4-report.md). Phase 5 has not begun.
+[Phase 4 report](phase-4-report.md). Phase 5 adds local telemetry analytics and
+dashboard views; see [Phase 5 report](phase-5-report.md). Phase 6 has not begun.
 
 ## Mission and release boundaries
 
