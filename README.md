@@ -14,7 +14,7 @@ Phase 4 adds independent validation, scoped health and bounded shadow comparison
 Phase 5 adds read-only telemetry analytics and a local React dashboard.
 Phase 6 adds versioned activation, per-application authentication, durable SQL
 budgets and local release packaging. The shipped release enables route/read/health
-only. **RC blocked on live verification.** See [production readiness](docs/production-readiness.md),
+only. **LIVE-VERIFIED v0.1.0-rc1.** See [production readiness](docs/production-readiness.md),
 [the Phase 6 report](docs/phase-6-report.md), and [deployment](docs/deployment.md).
 
 Start with [implementation phases](docs/implementation-spec-v1.md),

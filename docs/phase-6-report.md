@@ -1,13 +1,13 @@
 # Phase 6 — Integration hardening and release candidate
 
-**RC blocked on live verification.** Candidate version: `v0.1.0-rc1`
+**LIVE-VERIFIED v0.1.0-rc1.** Candidate version: `v0.1.0-rc1`
 (Python package `0.1.0rc1`). This is local preparation only; no public package,
 GitHub release, or adaptive-routing work is authorized or performed.
 
 The shipped `config/releases/route-only-v1.yaml` supports authenticated route,
 read and health operations. Execution is off. The separate live composition is
-covered by offline admission/integration tests but has not been verified against
-an account. Production readiness is enumerated in [the readiness table](production-readiness.md).
+covered by offline admission/integration tests and now verified against a dedicated
+OpenAI credential with tiny standard-text V0 canaries. Production readiness is enumerated in [the readiness table](production-readiness.md).
 
 ## Multi-agent work and integration
 
@@ -77,22 +77,47 @@ copy only the main SQLite file while WAL is active. Operational backups must inc
 the durable journal and all reservation/history evidence. Restoring an earlier
 budget ledger requires spend reconciliation before paid service resumes.
 
-## Live verification
+## Final live verification — 2026-09-07
 
-No live canaries ran. Account access for Luna/Terra/Sol/Astra, structured classifier
-behavior and end-to-end paid execution are unverified. **Actual spend: $0.** No
-paid cap was activated. The canary tool requires a dedicated durable application
-allocation no larger than the explicitly supplied aggregate cap, existing runtime
-opt-in, fresh referenced access/pricing evidence and matching activation.
+The final pass used baseline `1d8b94926dde2d3aa71dc01eb49686fa6ac0f13e`.
+After explicit credential and spend approval, a dedicated Model Router key was
+created securely and bound to private immutable account evidence. All four exact
+model IDs were retrievable; Luna `none`, Terra `none`, Sol `none`, and Astra `low`
+completed paid Responses execution. Both real Luna `low` classifier calls passed
+strict Structured Outputs with provenance and all seven complexity components.
 
-Public OpenAI model/Responses/model-retrieval documentation was reviewed on
-2026-09-07; published short-context prices agreed with the existing catalog.
-[The source-backed live evidence note](phase-6-live-evidence.md) distinguishes
-public facts from missing account evidence. No historic pricing snapshot changed.
-Canaries retain safe status, usage, actual/unknown cost, latency, model/effort,
-request/response IDs and version references; no raw content. Canary success never
-modifies routing policy. The live release surface is standard text and V0 only;
-semantic evaluators, tools, shadows and automatic live probes are rejected.
+The end-to-end task `canary-65d07de1176f41f78870e01aadaac26d` passed live
+classification → unchanged router → Luna `none` → V0 provider-success validation
+→ SQLite persistence/outbox → telemetry. It cost $0.0003282 and took 4,060.757 ms.
+The separate classifier result was also fed through the unchanged Phase 1 engine.
+Its task-property schema cannot select a generation model, effort or validation.
+
+**Total spend: $0.0018026 across 10 calls**, below the approved **$1.00** aggregate
+cap and the stricter **$0.60** combined allocated ceilings. The existing release
+runner exercised Terra/Sol/Astra at `medium`; three deliberate additional checks
+through the existing explicit-effort provider test covered the required efforts.
+The separate classifier check followed that runner. No automatic retry, shadow,
+tool call, policy tuning, or unsupported semantic validation was introduced.
+
+The isolated live telemetry cohort has five successful tasks, six paid pipeline
+invocations, eleven settled reservations and 37 outbox events. Its $0.0009062
+subtotal plus $0.0008964 in standalone live-eval evidence reconciles exactly.
+The rendered local dashboard and nine-step end-to-end timeline were inspected;
+raw prompt/output content and credentials are excluded, and synthetic flags are
+false. Read-only retained evidence correctly leaves current health UNKNOWN.
+
+The [live evidence note](phase-6-live-evidence.md) and its linked machine-readable
+record contain per-call safe usage/cost/latency/correlation and version evidence.
+Official short-context prices agree with historical snapshots. Fresh local
+immutable versions supplied activation status and finite operating limits;
+route-selection semantics and the approved source policy/oracle remain unchanged.
+The shipped route-only manifest was not enabled for public execution.
+
+This pass fixes no runtime code. It establishes tiny live canary behavior, not
+broad classifier quality, every reasoning effort, long-context economics,
+V1/V2/V3 live validation, production reliability or application integration.
+No package, release, container or public service was published. LEO integration
+and V2 work remain outside this task.
 
 ## Performance and dashboard
 
@@ -129,7 +154,8 @@ provider-call metrics, and preflight accepted unsupported token envelopes. Both
 were fixed with regressions. Exact durable-budget arithmetic was also hardened
 against caller Decimal precision. The reviewer passed 72 focused tests plus
 179/179 and 22/22, and reported no remaining material finding.
-Live access remains an external blocker regardless of offline results.
+Those reviews were offline; the subsequent final live pass above resolved the
+account/model/canary release blocker without changing runtime code.
 
 ## Regression and release verification
 
@@ -170,4 +196,17 @@ for build, local demo, migrations, activation, startup and rollback commands, an
 
 Two final local builds produced byte-identical wheel and source distributions.
 The local PostgreSQL 18.4 test server was stopped after successful verification.
-The remaining release blocker is live account/model/pricing/canary verification.
+The final live pass resolved the account/model/pricing/canary release blocker.
+The next milestone is first-application integration and production telemetry,
+beginning with LEO.
+
+## Final regression rerun
+
+After the paid checks, the complete `scripts/verify_release.py` command passed
+again: **712 backend tests passed, 4 deliberately skipped**, **21 frontend tests**,
+TypeScript/build, all Phase 1–4 runners, **179/179 combined** and **22/22 regressions**,
+positive/negative grader fixtures, configuration/skill validation, migration checks,
+and package/clean-install smoke. The three PostgreSQL tests passed separately
+against a new isolated local database. Historical routing policy and independent
+oracle remained byte-for-byte unchanged. Final source/link/secret checks and
+`git diff --check` cover this evidence-only update.

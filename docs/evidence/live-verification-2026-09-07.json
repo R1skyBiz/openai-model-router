@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "release_status": "LIVE-VERIFIED v0.1.0-rc1",
+  "baseline": "1d8b94926dde2d3aa71dc01eb49686fa6ac0f13e",
+  "verified_at": "2026-09-07T21:30:28.712709+00:00",
+  "credential": {
+    "kind": "new dedicated Model Router key",
+    "fingerprint_binding_verified": true,
+    "key_and_fingerprint_omitted": true
+  },
+  "spend": {
+    "checked_at": "2026-09-07T20:23:59.809179+00:00",
+    "total_usd": "0.0018026",
+    "paid_calls": 10,
+    "cost_complete": true,
+    "approved_cap_usd": "1.00",
+    "allocated_cap_usd": "0.60"
+  },
+  "account_metadata": {
+    "luna": {
+      "provider_model_id": "gpt-5.6-luna",
+      "access_verified": true,
+      "latency_ms": 840.08
+    },
+    "terra": {
+      "provider_model_id": "gpt-5.6-terra",
+      "access_verified": true,
+      "latency_ms": 573.19
+    },
+    "sol": {
+      "provider_model_id": "gpt-5.6-sol",
+      "access_verified": true,
+      "latency_ms": 486.54
+    },
+    "astra": {
+      "provider_model_id": "gpt-6-astra",
+      "access_verified": true,
+      "latency_ms": 483.13
+    }
+  },
+  "calls": [
+    {
+      "label": "luna-generation",
+      "surface": "release_pipeline",
+      "cost_usd": "0.000008",
+      "started_at": "2026-09-07T19:54:06.882588Z",
+      "completed_at": "2026-09-07T19:54:09.541888Z",
+      "task_id": "canary-b4ec3d3e4ef04f09b558d370a127bede",
+      "trace_id": "canary-b4ec3d3e4ef04f09b558d370a127bede",
+      "invocation_id": "b592d383-dabc-43c6-8f96-024d44985942",
+      "model_alias": "luna",
+      "provider_model_id": "gpt-5.6-luna",
+      "reasoning_effort": "none",
+      "response_id": "resp_0a9f8da0f84ca527016a9f1660121c87d2b4c4b819108b3145",
+      "response_status": "completed",
+      "latency_ms": 2478.320583992172,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "terra-generation",
+      "surface": "release_pipeline",
+      "cost_usd": "0.00008",
+      "started_at": "2026-09-07T19:54:09.763655Z",
+      "completed_at": "2026-09-07T19:54:11.306540Z",
+      "task_id": "canary-c7d28a673a014233acfce7b4ae218994",
+      "trace_id": "canary-c7d28a673a014233acfce7b4ae218994",
+      "invocation_id": "4bcd692c-5679-4059-9ee7-aed80588977d",
+      "model_alias": "terra",
+      "provider_model_id": "gpt-5.6-terra",
+      "reasoning_effort": "medium",
+      "response_id": "resp_084fa9db6cc233a2016a9f1662216c87d29b948f7f66b68862",
+      "response_status": "completed",
+      "latency_ms": 1333.4214169881307,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "sol-generation",
+      "surface": "release_pipeline",
+      "cost_usd": "0.00014",
+      "started_at": "2026-09-07T19:54:11.530316Z",
+      "completed_at": "2026-09-07T19:54:14.376350Z",
+      "task_id": "canary-f85997dc47764472a69f44ba7102ba4d",
+      "trace_id": "canary-f85997dc47764472a69f44ba7102ba4d",
+      "invocation_id": "c6cb7ba8-63f7-41a5-a24e-ecbc4eede60d",
+      "model_alias": "sol",
+      "provider_model_id": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "response_id": "resp_0e70a3010848917f016a9f1663d2c487d2b694ab3ef116cb7f",
+      "response_status": "completed",
+      "latency_ms": 2651.910541986581,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "astra-generation",
+      "surface": "release_pipeline",
+      "cost_usd": "0.00035",
+      "started_at": "2026-09-07T19:54:14.596509Z",
+      "completed_at": "2026-09-07T19:54:16.437729Z",
+      "task_id": "canary-0349d1478e4c444bae96fe23995ae8f4",
+      "trace_id": "canary-0349d1478e4c444bae96fe23995ae8f4",
+      "invocation_id": "afa379b7-e2cf-45fd-b431-3cf30412af35",
+      "model_alias": "astra",
+      "provider_model_id": "gpt-6-astra",
+      "reasoning_effort": "medium",
+      "response_id": "resp_0a06c65a1e7e0a86016a9f1666e5e087d2815b59c959b87c33",
+      "response_status": "completed",
+      "latency_ms": 1635.9437919891207,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "end-to-end-classification",
+      "surface": "release_pipeline",
+      "cost_usd": "0.0003202",
+      "started_at": "2026-09-07T19:54:16.634363Z",
+      "completed_at": "2026-09-07T19:54:19.175265Z",
+      "task_id": "canary-65d07de1176f41f78870e01aadaac26d",
+      "trace_id": "canary-65d07de1176f41f78870e01aadaac26d",
+      "invocation_id": "classifier:84c45fea03324c348e5cbe70b25ce761",
+      "model_alias": "luna",
+      "provider_model_id": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "response_id": "resp_0ef38535d5156a72016a9f1668ea2887d297d50ec50ef45f0b",
+      "response_status": "completed",
+      "latency_ms": 2455.8465000009164,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 923,
+        "output_tokens": 113,
+        "reasoning_tokens": 0,
+        "total_tokens": 1036
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "end-to-end-generation",
+      "surface": "release_pipeline",
+      "cost_usd": "0.000008",
+      "started_at": "2026-09-07T19:54:19.267903Z",
+      "completed_at": "2026-09-07T19:54:20.501766Z",
+      "task_id": "canary-65d07de1176f41f78870e01aadaac26d",
+      "trace_id": "canary-65d07de1176f41f78870e01aadaac26d",
+      "invocation_id": "472ae5c5-bb9d-41a7-b419-e177979fc191",
+      "model_alias": "luna",
+      "provider_model_id": "gpt-5.6-luna",
+      "reasoning_effort": "none",
+      "response_id": "resp_015e0f93bfe2c8d9016a9f166b9ae087d28a23c5add4825c87",
+      "response_status": "completed",
+      "latency_ms": 1047.9829590040026,
+      "usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 0,
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "standalone-classifier",
+      "surface": "live_eval",
+      "cost_usd": "0.0003264",
+      "task_id": "standalone-classifier-20260907",
+      "trace_id": "standalone-classifier-20260907",
+      "invocation_id": "classifier:705e7e02c54442f3a420dc527740a6ae",
+      "model_alias": "luna",
+      "provider_model_id": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "response_id": "resp_0d051c45aff882e2016a9f166cd0a887d29592f4dfe85486da",
+      "response_status": "completed",
+      "latency_ms": 1914.577832998475,
+      "usage": {
+        "input_tokens": 942,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 115,
+        "reasoning_tokens": 0,
+        "total_tokens": 1057
+      },
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1"
+    },
+    {
+      "label": "explicit-terra",
+      "surface": "live_eval",
+      "cost_usd": "0.00008",
+      "task_id": "live-provider-canary",
+      "trace_id": "live-provider-canary",
+      "invocation_id": "live-provider-canary",
+      "model_alias": "terra",
+      "provider_model_id": "gpt-5.6-terra",
+      "reasoning_effort": "none",
+      "response_id": "resp_0c90ba76d536a140016a9f1d5b652087d2872d6251327bace5",
+      "response_status": "completed",
+      "latency_ms": 2655.0089590018615,
+      "usage": {
+        "input_tokens": 10,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-v1.0.0",
+      "catalog_version": "models-v1.0.0"
+    },
+    {
+      "label": "explicit-sol",
+      "surface": "live_eval",
+      "cost_usd": "0.00014",
+      "task_id": "live-provider-canary",
+      "trace_id": "live-provider-canary",
+      "invocation_id": "live-provider-canary",
+      "model_alias": "sol",
+      "provider_model_id": "gpt-5.6-sol",
+      "reasoning_effort": "none",
+      "response_id": "resp_000e0b0422b15839016a9f1d5cc3c087d2a2b535e6e5569436",
+      "response_status": "completed",
+      "latency_ms": 1270.435416008695,
+      "usage": {
+        "input_tokens": 10,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-v1.0.0",
+      "catalog_version": "models-v1.0.0"
+    },
+    {
+      "label": "explicit-astra",
+      "surface": "live_eval",
+      "cost_usd": "0.00035",
+      "task_id": "live-provider-canary",
+      "trace_id": "live-provider-canary",
+      "invocation_id": "live-provider-canary",
+      "model_alias": "astra",
+      "provider_model_id": "gpt-6-astra",
+      "reasoning_effort": "low",
+      "response_id": "resp_03b53e7f6b05c1e0016a9f1d5e79c087d28c4273ded4d5c3da",
+      "response_status": "completed",
+      "latency_ms": 2019.2017079971265,
+      "usage": {
+        "input_tokens": 10,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_tokens": 0,
+        "total_tokens": 15
+      },
+      "policy_version": "router-v1.0.0",
+      "catalog_version": "models-v1.0.0"
+    }
+  ],
+  "standalone_classifier": {
+    "outcome": "classification",
+    "classification": {
+      "task_family": "transform",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 1,
+        "step_dependency": 1,
+        "context_synthesis": 1,
+        "technical_precision": 2,
+        "ambiguity": 1,
+        "tool_orchestration": 1,
+        "reliability_requirement": 2
+      },
+      "confidence": 0.99,
+      "flags": {
+        "consequential_multi_system": false,
+        "exceptional_end_to_end": false,
+        "long_horizon": false,
+        "multivariable": false,
+        "repository_wide": false,
+        "substantive_implementation": false
+      },
+      "provenance": "classifier-live-canary-20260907-v1;prompt=task-properties-v1@sha256:43dc187cc1c6d99de21a14c6d727c8c6f60b43fc670f27cd762a50cdddff48b6;schema=classifier-schema-v1@sha256:a19462e0f4c79bf19a5d3b4ac3122deb39e8f3f98b155940228e0953e5e3ae96;config=sha256:9f72b6b32c2bdb3563e9af1cfb3b26b7328d8b5d5c7fafc4fb6bc1613cb28349;policy=sha256:63b7d4da692edacba0b22dc247dbc72b7cae29081e22060cfd719ce6efe3e24a",
+      "supplied_total": null
+    },
+    "classifier_version": "classifier-live-canary-20260907-v1",
+    "prompt_version": "task-properties-v1",
+    "schema_version": "classifier-schema-v1",
+    "configuration_hash": "9f72b6b32c2bdb3563e9af1cfb3b26b7328d8b5d5c7fafc4fb6bc1613cb28349"
+  },
+  "standalone_route": {
+    "selected_model_alias": "luna",
+    "reasoning_effort": "none",
+    "validation_level": "V0",
+    "rationale_codes": [
+      "BASELINE_PRIOR",
+      "LOW_CLASSIFIER_CONFIDENCE"
+    ],
+    "policy_version": "router-live-canary-20260907-v1",
+    "catalog_version": "models-live-canary-20260907-v1",
+    "pricing_version": "quote-sha256:b1f273e82ac7916df0f91138feaf0d98f863efe3add81dc95486dda621d52eff"
+  },
+  "end_to_end": {
+    "task_id": "canary-65d07de1176f41f78870e01aadaac26d",
+    "trace_id": "canary-65d07de1176f41f78870e01aadaac26d",
+    "status": "succeeded",
+    "classification": {
+      "task_family": "conversation",
+      "task_subclass": null,
+      "components": {
+        "reasoning_depth": 1,
+        "step_dependency": 1,
+        "context_synthesis": 1,
+        "technical_precision": 1,
+        "ambiguity": 1,
+        "tool_orchestration": 1,
+        "reliability_requirement": 1
+      },
+      "confidence": 1.0,
+      "flags": {
+        "consequential_multi_system": false,
+        "exceptional_end_to_end": false,
+        "long_horizon": false,
+        "multivariable": false,
+        "repository_wide": false,
+        "substantive_implementation": false
+      },
+      "provenance": "classifier-live-canary-20260907-v1;prompt=task-properties-v1@sha256:43dc187cc1c6d99de21a14c6d727c8c6f60b43fc670f27cd762a50cdddff48b6;schema=classifier-schema-v1@sha256:a19462e0f4c79bf19a5d3b4ac3122deb39e8f3f98b155940228e0953e5e3ae96;config=sha256:9f72b6b32c2bdb3563e9af1cfb3b26b7328d8b5d5c7fafc4fb6bc1613cb28349;policy=sha256:63b7d4da692edacba0b22dc247dbc72b7cae29081e22060cfd719ce6efe3e24a",
+      "supplied_total": null
+    },
+    "route": {
+      "selected_model_alias": "luna",
+      "reasoning_effort": "none",
+      "validation_level": "V0",
+      "rationale_codes": [
+        "BASELINE_PRIOR"
+      ],
+      "policy_version": "router-live-canary-20260907-v1",
+      "catalog_version": "models-live-canary-20260907-v1",
+      "pricing_version": "quote-sha256:b1f273e82ac7916df0f91138feaf0d98f863efe3add81dc95486dda621d52eff"
+    },
+    "cost_usd": "0.0003282",
+    "latency_ms": 4060.757
+  },
+  "telemetry": {
+    "task_count": 5,
+    "successful_tasks": 5,
+    "pipeline_invocations": 6,
+    "pipeline_spend_usd": "0.0009062",
+    "separate_live_eval_spend_usd": "0.0008964",
+    "settled_reservations": 11,
+    "paid_reservations": 6,
+    "zero_cost_validation_reservations": 5,
+    "unknown_reservations": 0,
+    "outbox_events": 37,
+    "end_to_end_timeline_steps": 9,
+    "synthetic": false,
+    "shadow_invocations": 0,
+    "shadow_spend_usd": "0",
+    "raw_content_excluded": true,
+    "dashboard_visually_verified": true,
+    "current_health": "UNKNOWN: retained evidence only"
+  },
+  "regression": {
+    "backend_passed": 712,
+    "backend_skipped": 4,
+    "postgres_passed": 3,
+    "frontend_passed": 21,
+    "phase1_passed": 142,
+    "phase2_passed": 19,
+    "phase3_applicable_passed": 178,
+    "phase4_passed": 1,
+    "combined_passed": 179,
+    "phase4_regressions_passed": 22,
+    "typecheck_build": "passed",
+    "package_install_migrations": "passed",
+    "positive_negative_fixtures": "passed within backend suite",
+    "configuration_skills": "passed",
+    "policy_oracle_unchanged": true
+  }
+}
