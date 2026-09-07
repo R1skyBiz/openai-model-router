@@ -351,3 +351,22 @@ retains its full task history, and projects the authored event horizon for the
 strict trace grader. Facts expose both that horizon and total recorded actions;
 tests verify the actual fallback model and alternate tool dispatches. The corpus,
 expected traces, schemas, fixtures and independent grader remain unchanged.
+
+## Phase 4 completion and combined corpus
+
+Phase 3's historical runner retains its explicit evaluator deferral. The new
+Phase 4 adapter executes that same authored `evaluator_infrastructure` scenario
+through real generation, two independently persisted evaluator invocations and
+bounded evaluator-only recovery. Its projections are graded by the unchanged
+oracle; all 179 authored cases are now executable through the combined runner.
+
+```bash
+uv run --offline python evals/run_phase4.py
+uv run --offline python evals/run_phase4.py --combined --report evals/results/phase4-combined.json --results evals/results/phase4-combined.jsonl
+uv run --offline python evals/run_local.py --results evals/results/phase4-combined.jsonl
+uv run --offline python evals/run_phase4.py --regressions
+```
+
+Additional Phase 4 regressions are separate from the 179 authored oracle cases.
+They cover semantic/domain acceptance, evaluator outage, health/circuit freshness
+and bounded shadow isolation. Default runs remain offline and require no API key.

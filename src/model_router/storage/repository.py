@@ -37,6 +37,7 @@ from model_router.storage.models import (
     RoutingDecisionRow,
     TaskRow,
     ToolEventRow,
+    VerificationEvidenceRow,
 )
 from model_router.telemetry.events import event_payload, task_payload
 
@@ -395,7 +396,7 @@ class SQLiteTaskRepository:
 
     @staticmethod
     def _verify_task_progression(previous: TaskResult, current: TaskResult) -> None:
-        stable = ("task_id", "trace_id", "policy_version", "created_at", "application_id")
+        stable = ("task_id", "trace_id", "policy_version", "created_at", "application_id", "phase4_version", "phase4_config")
         if any(getattr(previous, name) != getattr(current, name) for name in stable):
             raise ConcurrentUpdate("stable task evidence changed")
         terminal = {
@@ -416,6 +417,10 @@ class SQLiteTaskRepository:
             (previous.decisions, current.decisions, "routing decisions", "decision_id"),
             (previous.attempts, current.attempts, "attempts", "attempt_id"),
             (previous.tool_events, current.tool_events, "tool events", "tool_event_id"),
+            (previous.evaluator_attempts, current.evaluator_attempts, "evaluator attempts", "attempt_id"),
+            (previous.domain_validations, current.domain_validations, "domain validations", "evaluation_id"),
+            (previous.health_snapshots, current.health_snapshots, "health snapshots", "snapshot_id"),
+            (previous.shadow_runs, current.shadow_runs, "shadow runs", "shadow_id"),
         )
         for old, new, label, identity in collections:
             old_ids = tuple(getattr(item, identity) for item in old)
@@ -428,6 +433,10 @@ class SQLiteTaskRepository:
             raise ConcurrentUpdate("unknown incurred cost cannot become complete without reconciliation")
         if previous.total_cost_usd is not None and current.total_cost_usd is not None and current.total_cost_usd < previous.total_cost_usd:
             raise ConcurrentUpdate("incurred total cost cannot decrease")
+        for field in ('production_generation_cost_usd', 'production_validation_cost_usd'):
+            old_cost, new_cost = getattr(previous, field), getattr(current, field)
+            if old_cost is None and new_cost is not None or old_cost is not None and new_cost is not None and new_cost < old_cost:
+                raise ConcurrentUpdate('attributed production cost cannot decrease')
         old_actions = previous.recovery_actions
         if current.recovery_actions[: len(old_actions)] != old_actions:
             raise ConcurrentUpdate("prior recovery actions must be preserved")
@@ -436,6 +445,19 @@ class SQLiteTaskRepository:
                 raise ConcurrentUpdate("execution counters cannot decrease")
 
     def _persist_children(self, session: Session, task: TaskResult) -> None:
+        if task.phase4_version is not None:
+            self._put_immutable(session, PolicyVersionRow, 'phase4:' + task.phase4_version, task.phase4_config)
+        for attempt in task.evaluator_attempts:
+            self._verification(session, task, 'evaluator', attempt.attempt_id, attempt.status.value,
+                attempt.model_dump(mode='json'), self._valid_attempt_progression)
+        for item in task.domain_validations:
+            self._verification(session, task, 'domain', item.evaluation_id, item.status, item.model_dump(mode='json'))
+        for item in task.health_snapshots:
+            # One snapshot can be referenced by many tasks.
+            self._verification(session, task, 'health', task.task_id + ':' + item.snapshot_id, 'final', item.model_dump(mode='json'))
+        for item in task.shadow_runs:
+            self._verification(session, task, 'shadow', item.shadow_id, item.status,
+                item.model_dump(mode='json'), self._valid_shadow_progression)
         decisions = list(task.decisions)
         if task.initial_decision is not None and all(
             item.decision_id != task.initial_decision.decision_id for item in decisions
@@ -518,6 +540,34 @@ class SQLiteTaskRepository:
                     raise ConcurrentUpdate("finalized tool evidence is immutable")
                 existing.status = tool_event.status
                 existing.payload_json = payload
+
+    def _verification(self, session, task, kind, identity, status, payload, progression=None):
+        serialized = _json(payload)
+        row = session.get(VerificationEvidenceRow, identity)
+        if row is None:
+            session.add(VerificationEvidenceRow(evidence_id=identity, task_id=task.task_id,
+                kind=kind, status=status, payload_json=serialized))
+        elif row.payload_json != serialized:
+            if row.task_id != task.task_id or row.kind != kind or row.status != 'started' or progression is None or not progression(json.loads(row.payload_json), payload):
+                raise ConcurrentUpdate('finalized verification evidence is immutable')
+            row.status, row.payload_json = status, serialized
+
+    @classmethod
+    def _valid_shadow_progression(cls, previous, current):
+        mutable = {'status', 'reason', 'attempts', 'generation_cost_usd', 'validation_cost_usd'}
+        if any(current.get(k) != v for k, v in previous.items() if k not in mutable):
+            return False
+        old, new = previous['attempts'], current['attempts']
+        if len(new) < len(old):
+            return False
+        for before, after in zip(old, new):
+            if before != after and (before['status'] != 'started' or not cls._valid_attempt_progression(before, after)):
+                return False
+        for key in ('generation_cost_usd', 'validation_cost_usd'):
+            a, b = previous[key], current[key]
+            if a is None and b is not None or a is not None and b is not None and Decimal(b) < Decimal(a):
+                return False
+        return True
 
     @staticmethod
     def _valid_attempt_progression(previous: dict[str, Any], current: dict[str, Any]) -> bool:

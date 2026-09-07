@@ -190,3 +190,19 @@ Recovery counters/backoff parameters currently null must be set and evaluated
 in Phase 3. Infrastructure fallback can only use a safe same/lower tier route
 meeting all hard constraints; otherwise return a recoverable failure. A separate
 new quality/capability finding may cause reclassification, never a timeout alone.
+
+## Phase 4 synthetic operational configuration
+
+`config/phase4.yaml` is separately versioned and loaded with
+`policy.phase4.load_phase4(path, bundle)`. It supplies explicit evaluator bindings,
+rubrics, score scales/thresholds, maximum input/output/time, bounded evaluator retry
+and backoff, a nullable domain reference/cost bound, and health freshness/circuit/
+probe limits. Its synthetic-only setting is mandatory. Model/effort references
+are checked against the same catalog. Loading it neither edits nor activates the
+approved four-file bundle. Actual configuration snapshots are retained with tasks.
+
+Shadow sampling/comparisons and separate allocations remain owned by the bundle's
+validation.yaml. Enable experiments only in a new versioned synthetic bundle;
+checked-in defaults stay disabled. The period ceiling currently bounds one local
+experiment allocation per version, with no implicit calendar reset. Privacy
+permission, a distinct budget authority and safe read-only inputs are also needed.

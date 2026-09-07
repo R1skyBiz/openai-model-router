@@ -24,6 +24,7 @@ from model_router.core.execution_contracts import (
     TaskStatus,
 )
 from model_router.execution.orchestrator import ExecutionDependencies, execute
+from model_router.execution.provider import MockProvider
 from model_router.router import route
 
 
@@ -59,10 +60,86 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
     async def unexpected_error(_request, _error):
         return _error_response(500, "internal_error", "The request could not be completed.")
 
+    @app.get("/health/live")
+    def health_live():
+        # Process liveness deliberately performs no dependency or provider I/O.
+        return {"live": True, "state": "HEALTHY"}
+
+    @app.get("/health/ready")
+    def health_ready():
+        health = dependencies.health
+        if health is None:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "ready": False,
+                    "state": "UNHEALTHY",
+                    "blockers": ["health_service_unconfigured"],
+                    "snapshot_id": None,
+                },
+            )
+        try:
+            snapshot = health.snapshot()
+            environment = _environment(dependencies, health_snapshot=snapshot)
+            status = health.operation_readiness(
+                environment,
+                execution_authorized=dependencies.controls.authorized,
+                finite_limits=dependencies.limits is not None,
+                synthetic_provider=isinstance(dependencies.provider, MockProvider),
+                snapshot=snapshot,
+            )
+        except (ConfigurationError, RepositoryUnavailable):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "ready": False,
+                    "state": "UNHEALTHY",
+                    "blockers": ["dependency_environment_unavailable"],
+                    "snapshot_id": None,
+                },
+            )
+        return JSONResponse(
+            status_code=200 if status.ready else 503,
+            content={
+                "ready": status.ready,
+                "state": status.state,
+                "blockers": list(status.blockers),
+                "snapshot_id": snapshot.snapshot_id,
+                "observed_at": snapshot.observed_at.isoformat(),
+                "valid_until": snapshot.valid_until.isoformat(),
+            },
+        )
+
+    @app.get("/health/components")
+    def health_components():
+        health = dependencies.health
+        if health is None:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "snapshot_id": None,
+                    "config_version": None,
+                    "synthetic": True,
+                    "components": [],
+                    "blockers": ["health_service_unconfigured"],
+                },
+            )
+        snapshot = health.snapshot()
+        return {
+            "snapshot_id": snapshot.snapshot_id,
+            "config_version": snapshot.config_version,
+            "observed_at": snapshot.observed_at.isoformat(),
+            "valid_until": snapshot.valid_until.isoformat(),
+            "synthetic": snapshot.synthetic,
+            "components": [
+                item.model_dump(mode="json") for item in snapshot.observations
+            ],
+        }
+
     @app.post("/v1/route")
     def route_request(body: RouteBody):
         try:
-            environment = _environment(dependencies)
+            environment = _environment(dependencies, required_capabilities=body.request.requirements)
             outcome = route(
                 body.request,
                 body.classification,
@@ -163,10 +240,23 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
     return app
 
 
-def _environment(dependencies: ExecutionDependencies):
+def _environment(
+    dependencies: ExecutionDependencies,
+    *,
+    required_capabilities: tuple[str, ...] = (),
+    health_snapshot=None,
+):
     source = dependencies.environment
     environment = source() if callable(source) else source
-    return environment.model_copy(update={"clock": dependencies.clock.now()})
+    environment = environment.model_copy(update={"clock": dependencies.clock.now()})
+    if dependencies.health is not None:
+        snapshot = health_snapshot or dependencies.health.snapshot()
+        environment = dependencies.health.apply(
+            environment,
+            required_capabilities=required_capabilities,
+            snapshot=snapshot,
+        )
+    return environment
 
 
 def _task_projection(task: TaskResult, *, include_output: bool) -> dict[str, Any]:

@@ -3,7 +3,8 @@
 Status: Accepted architecture contract; Phase 1 routing and Phase 2 classifier /
 single-invocation provider adapters are complete. Phase 3 adds bounded offline
 execution and persistence; see [Phase 3 report](phase-3-report.md). Production
-execution remains disabled and Phase 4 has not begun.
+execution remains disabled. Phase 4 adds offline validation, health and bounded shadows;
+see [Phase 4 report](phase-4-report.md).
 
 ## Mission and ownership
 

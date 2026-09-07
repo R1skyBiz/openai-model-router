@@ -9,7 +9,7 @@ import json
 
 from model_router.core.configuration import PolicyBundle
 from model_router.core.contracts import (Request, Classification, Candidate, EnvironmentSnapshot,
-    RouteDecision, RouteRejection, FailureType, thaw)
+    RouteDecision, RouteRejection, FailureType, ValidationLevel, thaw, freeze)
 from model_router.core.classifier_contracts import Classifier, ClassificationFailure
 from model_router.core.provider_contracts import ModelProvider, ProviderRequest, ProviderResult, ProviderFailure
 from model_router.core.execution_contracts import (TaskResult, TaskStatus, Attempt, AttemptStatus,
@@ -25,6 +25,7 @@ from model_router.execution.admission import check_admission
 from model_router.execution.safety import request_digest, scoped_key_digest
 from model_router.escalation import choose_recovery
 from model_router.validation.v0 import V0Validator
+from model_router.execution.verification import VerificationMixin
 
 @dataclass(frozen=True)
 class ExecutionDependencies:
@@ -39,6 +40,9 @@ class ExecutionDependencies:
     classifier: Classifier | None = None
     validator: V0Validator = field(default_factory=V0Validator)
     tools: ToolExecutor | None = None
+    semantic: object | None = None
+    health: object | None = None
+    shadow: object | None = None
     cancelled: Callable[[], bool] = field(default=lambda: False)
 
 
@@ -64,7 +68,7 @@ class _EnvironmentChanged(RuntimeError):
     pass
 
 
-class _Execution:
+class _Execution(VerificationMixin):
     def __init__(self, request, deps, classification):
         self.request, self.d, self.classification = request, deps, classification
         now = deps.clock.now()
@@ -74,9 +78,17 @@ class _Execution:
         self.limits = deps.limits
         self.cost_violation = False
         self.budget_unavailable = False
+        self.shadow_retention_deferred = False
+        self.shadow_retention_failed = False
         self.initial_environment = None
+        self.semantic_config = deps.semantic.config if deps.semantic else None
+        self.health_config = deps.health.config if deps.health else None
 
     def environment(self):
+        if self.d.semantic is not None and self.d.semantic.config != self.semantic_config:
+            raise _EnvironmentChanged()
+        if self.d.health is not None and self.d.health.config != self.health_config:
+            raise _EnvironmentChanged()
         source = self.d.environment
         env = source() if callable(source) else source
         if self.initial_environment is None:
@@ -88,7 +100,27 @@ class _Execution:
             pinned = set(type(env).model_fields) - mutable
             if any(getattr(env, key) != getattr(self.initial_environment, key) for key in pinned):
                 raise _EnvironmentChanged()
-        return env.model_copy(update={'clock': self.d.clock.now()})
+        env = env.model_copy(update={'clock': self.d.clock.now()})
+        if self.d.semantic is not None and env.synthetic:
+            from model_router.policy.validation import determine_validation
+            requirements = determine_validation(self.request, env, self.d.bundle)
+            bindings = {b.ref: b for b in self.d.semantic.config.evaluators}
+            configured = dict(env.validation)
+            for level, profile in self.d.bundle.validation['profiles'].items():
+                if profile.get('evaluator_ref') in bindings:
+                    configured[ValidationLevel(level)] = 'configured_mock'
+                if level == 'V3' and self.d.semantic.config.domain_validator_ref is not None:
+                    configured[ValidationLevel(level)] = 'configured_mock'
+            costs = [self.evaluation_quote(bindings[ref], env).amount for ref in requirements.evaluator_refs if ref in bindings]
+            env = env.model_copy(update={'validation': configured,
+                'required_evaluator_cost_usd': None if any(x is None for x in costs) else money_sum(costs),
+                'required_domain_validator_cost_usd': self.d.semantic.domain_bound})
+        if self.d.health is not None:
+            snapshot = self.d.health.snapshot()
+            env = self.d.health.apply(env, required_capabilities=self.request.requirements, snapshot=snapshot)
+            if all(s.snapshot_id != snapshot.snapshot_id for s in self.task.health_snapshots):
+                self.task = self.task.model_copy(update={'health_snapshots': (*self.task.health_snapshots, snapshot)})
+        return env
 
     def elapsed(self):
         return max(0, int((self.d.clock.now() - self.task.created_at).total_seconds() * 1000))
@@ -113,6 +145,9 @@ class _Execution:
     def save(self, *events):
         prior = self.task.revision
         self.task = self.task.model_copy(update={'revision': prior + 1, 'updated_at': self.d.clock.now()})
+        if self.shadow_retention_deferred:
+            self.d.repository.retain_pending(self.task, tuple(events))
+            return
         try:
             self.d.repository.save(self.task, tuple(events), expected_revision=prior)
         except RepositoryUnavailable:
@@ -133,6 +168,8 @@ class _Execution:
 
     def checkpoint(self):
         self.environment()  # Recheck trusted prerequisites at every action boundary.
+        if self.d.health is not None and not self.d.health.dependency_readiness().ready:
+            return self.failure(FailureType.PROVIDER_FAILURE, 'required_health_unavailable')
         if self.budget_unavailable:
             return self.failure(FailureType.BUDGET_FAILURE, 'budget_authority_unavailable')
         if self.cost_violation:
@@ -155,6 +192,16 @@ class _Execution:
         env = self.environment()
         scope = env.trusted_application_id or 'embedded'
         self.task = self.task.model_copy(update={'application_id': env.trusted_application_id})
+        if self.d.semantic is not None or self.d.health is not None:
+            operational = {}
+            if self.d.semantic is not None:
+                operational['validation'] = self.d.semantic.config.model_dump(mode='json')
+            if self.d.health is not None:
+                operational['health'] = self.d.health.config.model_dump(mode='json')
+            import hashlib
+            version = hashlib.sha256(json.dumps(operational, sort_keys=True).encode()).hexdigest()
+            self.task = self.task.model_copy(update={'phase4_version': 'verification-' + version,
+                'phase4_config': freeze(operational)})
         key = self.d.controls.idempotency_key
         existing = self.d.repository.create(self.task, self.event('TASK_CREATED'), scope=scope,
             key_digest=scoped_key_digest(scope, key) if key else None,
@@ -227,6 +274,7 @@ class _Execution:
                 failure = self.checkpoint()
                 if failure:
                     return self.stop(failure, status=TaskStatus.CANCELLED if failure.cause_code == 'cancelled' else TaskStatus.FAILED)
+                self.run_shadow()
                 final = self.task.attempts[-1].provider_outcome
                 action = RecoveryAction(action='stop_success', route=self.target(decision), validated=True, reason='validated_success')
                 self.task = self.task.model_copy(update={'recovery_actions': (*self.task.recovery_actions, action)})
@@ -234,6 +282,8 @@ class _Execution:
                     output=final.text, structured_output=final.structured_output)
                 self.save(self.event('TASK_SUCCEEDED'))
                 return self.task
+            if failure.source == 'evaluator':
+                return self.stop(failure)
             if self.budget_unavailable:
                 return self.stop(self.failure(FailureType.BUDGET_FAILURE, 'budget_authority_unavailable'))
             if failure.cause_code == 'trusted_execution_environment_changed':
@@ -298,11 +348,19 @@ class _Execution:
         # Phase 3 tool authorization, never by forging a route-only preview.
         if 'side_effect_execution_unconfigured' in blockers and self.d.controls.side_effects_authorized and self.d.tools and self.d.controls.tool_calls:
             blockers.remove('side_effect_execution_unconfigured')
-        blockers.extend(self.d.validator.readiness(decision, self.d.controls))
+        v0_decision = decision.model_copy(update={'validation_level': 'V0'}) if self.d.semantic is not None else decision
+        v0_blockers = self.d.validator.readiness(v0_decision, self.d.controls)
+        if self.d.semantic is not None:
+            blockers.extend(self.phase4_readiness(decision))
+        blockers.extend(v0_blockers)
         if self.request.context.expected_output_tokens <= 0:
             blockers.append('positive_output_bound_required')
         if self.d.controls.tool_calls and self.d.tools is None:
             blockers.append('tool_executor_unavailable')
+        if self.d.health is not None:
+            for call in self.d.controls.tool_calls:
+                if not self.d.health.available('tool', capability=call.tool):
+                    blockers.append('required_tool_unavailable')
         if self.request.side_effecting_tool and not any(t.side_effecting for t in self.d.controls.tool_calls):
             blockers.append('side_effect_scope_missing')
         return tuple(blockers)
@@ -339,13 +397,14 @@ class _Execution:
         estimate = max(quote.generation_subtotal, Decimal(miss['generation_subtotal'])) if miss else quote.generation_subtotal
         check_cost = quote.amount
         validation_bound = self.d.validator.upper_bound(self.d.controls)
+        semantic_bound = self.semantic_bound(decision)
         tool_bounds = [call.cost_upper_bound_usd for call in self.d.controls.tool_calls]
-        if check_cost is None or validation_bound is None or any(x is None for x in tool_bounds):
+        if check_cost is None or validation_bound is None or semantic_bound is None or any(x is None for x in tool_bounds):
             check_cost = None
         else:
             # The future required work must fit now, and is checked again just
             # before dispatch. Expected cache hits never reduce the reserve.
-            check_cost = max(check_cost, money_sum((estimate, validation_bound, *tool_bounds)))
+            check_cost = max(check_cost, money_sum((estimate, validation_bound, semantic_bound, *tool_bounds)))
         failure = check_admission(self.request, self.d.controls, self.limits, self.task.counters,
             self.elapsed(), self.remaining(), check_cost, action='generation')
         if failure:
@@ -399,6 +458,11 @@ class _Execution:
         self.task = self.task.model_copy(update={'attempts': (*self.task.attempts[:-1], interim)})
         self.save()  # Provider evidence survives even a failed ledger settlement.
         self.charge(attempt_id, actual, estimate)
+        self.add_cost('production_generation_cost_usd', actual)
+        if self.d.health is not None:
+            self.d.health.observe('provider', model=decision.selected_model_alias,
+                failure=outcome.failure_type if isinstance(outcome, ProviderFailure) else None,
+                success=not isinstance(outcome, ProviderFailure))
         original, validated, validations = None, False, ()
         failure = Failure(failure_type=outcome.failure_type, source=outcome.source, stage=outcome.stage,
             cause_code=outcome.cause_code, retryable=outcome.retryable, retry_after_ms=outcome.retry_after_ms) if isinstance(outcome, ProviderFailure) else None
@@ -421,6 +485,7 @@ class _Execution:
                 costs = [v.cost_usd for v in validations]
                 validation_cost = None if any(x is None for x in costs) else money_sum(costs)
                 self.charge(validation_id, validation_cost, validation_bound)
+                self.add_cost('production_validation_cost_usd', validation_cost)
                 problem = next((v for v in validations if v.failure and v.failure.failure_type == FailureType.BUDGET_FAILURE),
                     next((v for v in validations if v.failure is not None), None))
                 validated = all(v.status == 'passed' for v in validations)
@@ -432,6 +497,13 @@ class _Execution:
                         original = failure.failure_type
                         failure = failure.model_copy(update={'failure_type': problem.diagnosed_failure})
                         validated = failure.failure_type == FailureType.QUALITY_FAILURE
+        if failure is None and self.d.semantic is not None:
+            semantic_results, failure = self.verify_semantic(decision, outcome)
+            # Evaluation results are stored with evaluator attempts, not duplicated
+            # in the generation row. This keeps both evidence streams immutable.
+            validated = failure is None or (failure.failure_type == FailureType.QUALITY_FAILURE and
+                any(v.status == 'failed' and v.evidence_code for v in semantic_results))
+        failure = failure or self.validation_checkpoint()
         completed = finish_attempt(started, interim.model_copy(update={
             'status': AttemptStatus.FAILED if failure else AttemptStatus.SUCCEEDED,
             'completed_at': self.d.clock.now(), 'failure':
@@ -454,6 +526,8 @@ class _Execution:
                     action='tool', replay=replay, tool_call=call)
                 if failure:
                     return failure
+                if self.d.health is not None and not self.d.health.available('tool', capability=call.tool):
+                    return self.failure(FailureType.TOOL_FAILURE, 'required_tool_unavailable', 'tool')
                 event_id = str(uuid4())
                 if not self.reserve(event_id, call.cost_upper_bound_usd):
                     return self.failure(FailureType.BUDGET_FAILURE, 'tool_reservation_refused')
@@ -464,6 +538,8 @@ class _Execution:
                 self.task = self.task.model_copy(update={'tool_events': (*self.task.tool_events, started)})
                 self.save(self.event('TOOL_STARTED', tool_event_id=event_id, attempt_id=started.parent_attempt_id))
                 pre_dispatch = self.checkpoint()
+                if pre_dispatch is None and self.d.health is not None and not self.d.health.available('tool', capability=call.tool):
+                    pre_dispatch = self.failure(FailureType.TOOL_FAILURE, 'required_tool_unavailable', 'tool')
                 if pre_dispatch:
                     outcome = started.model_copy(update={'status': 'failed', 'failure': pre_dispatch, 'cost_usd': Decimal('0')})
                     self.charge(event_id, Decimal('0'), call.cost_upper_bound_usd)
@@ -483,6 +559,9 @@ class _Execution:
                         FailureType.TOOL_FAILURE, 'tool_contract_error', 'tool')})
                 outcome = outcome.model_copy(update={'estimated_cost_usd': started.estimated_cost_usd, 'parent_attempt_id': started.parent_attempt_id,
                     'side_effecting': started.side_effecting, 'replay_safe': started.replay_safe})
+                if self.d.health is not None:
+                    self.d.health.observe('tool', capability=call.tool,
+                        failure=outcome.failure.failure_type if outcome.failure else None, success=outcome.failure is None)
                 self.charge(event_id, outcome.cost_usd, call.cost_upper_bound_usd)
                 self.task = self.task.model_copy(update={'tool_events': (*self.task.tool_events[:-1], outcome)})
                 self.save(self.event('TOOL_COMPLETED', tool_event_id=event_id, attempt_id=started.parent_attempt_id, failure=outcome.failure.failure_type if outcome.failure else None))

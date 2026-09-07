@@ -10,8 +10,9 @@ The objective is Effective Cost per Successful Task; configured candidate order
 is the transparent cold-start prior until success estimates are calibrated.
 Phase 2 adds a task classifier and a provider adapter for one Responses API call.
 Phase 3 adds bounded mock execution, recovery, SQLite evidence and HTTP adapters.
-Production execution remains disabled; Phase 4 has not begun. See the
-[Phase 3 report](docs/phase-3-report.md), including the deferred V1 evaluator case.
+Phase 4 adds independent validation, scoped health and bounded shadow comparison.
+Production remains disabled and Phase 5 has not begun. See the
+[Phase 4 report](docs/phase-4-report.md) for verification and limitations.
 
 Start with [implementation phases](docs/implementation-spec-v1.md),
 [architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
@@ -168,3 +169,14 @@ Required V1/V2/V3 remains blocked. Raw prompt/output capture and all live execut
 remain disabled. Full operational limits, live classifier admission, current-tariff
 refresh, authentication, cross-process reservations and journal locking remain
 production hardening prerequisites.
+
+## Phase 4: validation, health and bounded offline shadows
+
+Phase 4 implements configured V1/V2 independent semantic calls, the V3 domain
+boundary, evaluator-only recovery, scoped fresh health/circuits and isolated
+shadow comparison. Production and default shadow/live-probe execution remain
+disabled; Phase 5 has not begun. See [the report](docs/phase-4-report.md),
+[frozen interfaces](docs/phase-4-interfaces.md), and [ADR 0013](docs/decisions/0013-phase-4-verification-health-shadow.md).
+
+Run `uv run --offline pytest`, `uv run --offline python evals/run_phase4.py --combined`,
+and `uv run --offline python evals/run_phase4.py --regressions`.

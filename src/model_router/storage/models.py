@@ -107,3 +107,13 @@ class OutboxRow(Base):
     occurred_at: Mapped[datetime] = mapped_column(nullable=False)
     payload_json: Mapped[str] = mapped_column(Text, nullable=False)
     acknowledged_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+
+class VerificationEvidenceRow(Base):
+    """Phase 4 attempt, health, pairing and domain evidence in task transaction."""
+    __tablename__ = 'verification_evidence'
+    evidence_id: Mapped[str] = mapped_column(String, primary_key=True)
+    task_id: Mapped[str] = mapped_column(ForeignKey('tasks.task_id'), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)

@@ -1,5 +1,6 @@
 """Phase 3 shared records and ports. No framework, SDK or database imports."""
 from __future__ import annotations
+from model_router.core.phase4_contracts import HealthSnapshot
 
 from datetime import datetime
 from typing import Literal, Protocol
@@ -31,7 +32,7 @@ class AttemptStatus(StrEnum):
 
 class Failure(Record):
     failure_type: FailureType
-    source: Literal['provider', 'adapter', 'validation', 'tool', 'admission', 'orchestrator', 'storage', 'classifier']
+    source: Literal['provider', 'adapter', 'validation', 'tool', 'admission', 'orchestrator', 'storage', 'classifier', 'evaluator']
     stage: Name
     cause_code: Name
     retryable: StrictBool = False
@@ -61,7 +62,7 @@ class RouteTarget(Record):
 class RecoveryAction(Record):
     action: Literal['increase_effort', 'increase_tier', 'retry_backoff', 'health_aware_fallback',
         'retry_tool', 'alternate_tool', 'recoverable_failure', 'stop_reconcile', 'diagnose',
-        'stop', 'stop_budget', 'stop_deadline', 'stop_attempts', 'stop_approval', 'stop_success']
+        'retry_evaluator', 'stop', 'stop_budget', 'stop_deadline', 'stop_attempts', 'stop_approval', 'stop_success']
     failure: FailureType | None = None
     original_failure: FailureType | None = None
     route: RouteTarget | None = None
@@ -80,13 +81,23 @@ class ValidationOutcome(Record):
     diagnosed_failure: FailureType | None = None
     evidence_code: Name | None = None
     cost_usd: Money | None = '0'
+    evaluator_attempt_id: Name | None = None
+    target_attempt_id: Name | None = None
+    rubric_version: Name | None = None
+    score: float | None = None
+    score_min: float | None = None
+    score_max: float | None = None
 
 class Attempt(Record):
     attempt_id: Name
     task_id: Name
     trace_id: Name
     sequence: Duration
-    purpose: Literal['generation', 'classification'] = 'generation'
+    purpose: Literal['generation', 'classification', 'evaluation'] = 'generation'
+    role: Literal['production', 'shadow'] = 'production'
+    evaluator_ref: Name | None = None
+    rubric_version: Name | None = None
+    phase4_version: Name | None = None
     parent_attempt_id: Name | None = None
     decision: RouteDecision | None = None
     status: AttemptStatus
@@ -149,6 +160,19 @@ class ExecutionEvent(Record):
     failure_type: FailureType | None = None
     action: Name | None = None
 
+class ShadowRun(Record):
+    shadow_id: Name
+    production_attempt_id: Name
+    config_version: Name
+    sampling_seed: Name
+    sampling_rate: float
+    selected: StrictBool
+    status: Literal['skipped', 'started', 'succeeded', 'failed']
+    reason: Name
+    attempts: tuple[Attempt, ...] = ()
+    generation_cost_usd: Money | None = '0'
+    validation_cost_usd: Money | None = '0'
+
 class TaskResult(Record):
     application_id: Name | None = None
     task_id: Name
@@ -162,6 +186,14 @@ class TaskResult(Record):
     initial_decision: RouteDecision | RouteRejection | None = None
     decisions: tuple[RouteDecision | RouteRejection, ...] = ()
     attempts: tuple[Attempt, ...] = ()
+    evaluator_attempts: tuple[Attempt, ...] = ()
+    domain_validations: tuple[ValidationOutcome, ...] = ()
+    health_snapshots: tuple[HealthSnapshot, ...] = ()
+    shadow_runs: tuple[ShadowRun, ...] = ()
+    phase4_version: Name | None = None
+    phase4_config: dict | None = None
+    production_generation_cost_usd: Money | None = '0'
+    production_validation_cost_usd: Money | None = '0'
     tool_events: tuple[ToolOutcome, ...] = ()
     recovery_actions: tuple[RecoveryAction, ...] = ()
     counters: Counters = Field(default_factory=Counters)

@@ -122,3 +122,21 @@ The HTTP envelope has `request`, optional `classification` for execution, and
 optional `idempotency_key`; callers cannot replace trusted execution controls.
 Task retrieval is metadata-only. Application authentication remains a deployment
 gate; this local service must not be exposed as an authenticated production API.
+
+## Phase 4 verification composition
+
+`ExecutionDependencies` optionally receives `semantic: ValidationService`,
+`health: HealthService`, and `shadow: ShadowService`. V0 remains the default.
+The orchestrator gates the required validation profile, reserves and persists
+every evaluator invocation, retries evaluator infrastructure without generation,
+and isolates optional shadow output and spend. Health snapshots are consumed by
+the existing route engine and retained in the task transaction. Required checks
+never silently downgrade. Production execution remains disabled.
+
+`GET /health/live` is process-only. `/health/ready` checks shared operation
+readiness and returns 200 or 503. `/health/components` exposes sanitized scoped
+snapshot observations. None launches a provider call. Supplying no health service
+reports execution readiness unavailable. Route previews still execute no evaluator,
+provider, tool or shadow work. Task metadata includes evaluator and shadow evidence
+but never their raw output; only production output is in the immediate execute
+response. See [ADR 0013](decisions/0013-phase-4-verification-health-shadow.md).

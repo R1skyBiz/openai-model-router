@@ -23,7 +23,7 @@ class ProviderRequest(Record):
     output_type: type[BaseModel] | None = Field(default=None, exclude=True, repr=False)
     max_output_tokens: Duration
     timeout_ms: Duration
-    purpose: Literal["generation", "classification"] = "generation"
+    purpose: Literal["generation", "classification", "evaluation"] = "generation"
     truncation: Literal["disabled"] = "disabled"
 
 
@@ -72,7 +72,7 @@ class ProviderEvidence(Record):
     model_alias: Name
     provider_model_id: Name
     reasoning_effort: Effort
-    purpose: Literal["generation", "classification"]
+    purpose: Literal["generation", "classification", "evaluation"]
     response_id: Name | None = None
     response_status: Literal["completed", "failed", "in_progress", "cancelled", "queued", "incomplete"] | None = None
     returned_model_id: Name | None = None

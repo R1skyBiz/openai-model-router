@@ -1,6 +1,7 @@
 # Health audit v1
 
-Status: Accepted health contract; active probes and circuits are Phase 4 work.
+Status: Accepted health contract; local snapshots, bounded probe interfaces and circuits
+are implemented in Phase 4. Live probes and production execution remain disabled.
 
 ## Components and states
 
