@@ -678,6 +678,8 @@ def _route_key(route: RouteDecision) -> str:
 def _invoked(attempt: Any) -> bool:
     # Cancelled pre-dispatch reservations are not spend. A started record is an
     # invocation intent with potentially unknown charge and therefore is spend evidence.
+    if getattr(attempt.provider_outcome, 'stage', None) == 'preflight':
+        return False
     return not (str(attempt.status) == "cancelled" and attempt.provider_outcome is None)
 
 

@@ -1,0 +1,71 @@
+name: release-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: model_router
+          POSTGRES_USER: model_router
+          POSTGRES_PASSWORD: local-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U model_router -d model_router"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - name: Install locked Python dependencies
+        run: uv sync --locked --all-extras
+      - name: Install locked dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Run CI-equivalent verification and package smoke
+        run: uv run --frozen python scripts/verify_release.py --skip-frontend-install --uv uv
+      - name: Run PostgreSQL concurrency integration tests
+        env:
+          POSTGRES_TEST_DATABASE_URL: postgresql+psycopg://model_router:local-ci-only@127.0.0.1:5432/model_router
+        run: uv run --frozen pytest -q -m postgresql tests/test_phase6_postgres.py
+      - name: Exercise packaged migrations on PostgreSQL
+        env:
+          POSTGRES_TEST_DATABASE_URL: postgresql+psycopg://model_router:local-ci-only@127.0.0.1:5432/model_router
+        run: |
+          uv run --frozen python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from model_router.storage.migrations import downgrade_database, upgrade_database
+          url = os.environ["POSTGRES_TEST_DATABASE_URL"]
+          upgrade_database(url)
+          with create_engine(url).connect() as connection:
+              assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_phase6_durable_storage"
+          downgrade_database(url)
+          upgrade_database(url)
+          PY
+      - name: Build authenticated runtime container
+        run: docker build --tag openai-model-router:v0.1.0-rc1 .

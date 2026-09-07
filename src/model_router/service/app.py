@@ -43,11 +43,17 @@ class ExecuteBody(BaseModel):
     idempotency_key: Annotated[str, Field(min_length=1)] | None = None
 
 
-def create_app(dependencies: ExecutionDependencies) -> FastAPI:
+def create_app(
+    dependencies: ExecutionDependencies,
+    *,
+    trusted_application_id: str | None = None,
+) -> FastAPI:
     """Create an HTTP adapter around one explicit dependency composition."""
 
     if not isinstance(dependencies, ExecutionDependencies):
         raise TypeError("dependencies must be an ExecutionDependencies instance")
+    if trusted_application_id is not None and not trusted_application_id:
+        raise ValueError("trusted_application_id must be non-empty")
 
     app = FastAPI(title="OpenAI Model Router", version="1")
 
@@ -67,6 +73,12 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
 
     @app.get("/health/ready")
     def health_ready():
+        if dependencies.release_readiness is not None:
+            try:
+                result = dependencies.release_readiness()
+                return JSONResponse(status_code=200 if result['ready'] else 503, content=result)
+            except Exception:
+                return JSONResponse(status_code=503,content={'ready':False,'state':'UNHEALTHY'})
         health = dependencies.health
         if health is None:
             return JSONResponse(
@@ -112,6 +124,12 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
 
     @app.get("/health/components")
     def health_components():
+        if dependencies.release_readiness is not None:
+            try:
+                result = dependencies.release_readiness()
+                return JSONResponse(status_code=200 if result['ready'] else 503,content=result)
+            except Exception:
+                return JSONResponse(status_code=503,content={'ready':False,'state':'UNHEALTHY'})
         health = dependencies.health
         if health is None:
             return JSONResponse(
@@ -138,10 +156,19 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
 
     @app.post("/v1/route")
     def route_request(body: RouteBody):
+        request = _trusted_request(body.request, trusted_application_id)
+        if request is None:
+            return _error_response(
+                422,
+                "caller_application_id_forbidden",
+                "Application identity is resolved from the authenticated credential.",
+                task_id=body.request.task_id,
+                trace_id=body.request.trace_id,
+            )
         try:
-            environment = _environment(dependencies, required_capabilities=body.request.requirements)
+            environment = _environment(dependencies, required_capabilities=request.requirements)
             outcome = route(
-                body.request,
+                request,
                 body.classification,
                 environment,
                 dependencies.bundle,
@@ -169,6 +196,15 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
 
     @app.post("/v1/execute")
     def execute_request(body: ExecuteBody):
+        request = _trusted_request(body.request, trusted_application_id)
+        if request is None:
+            return _error_response(
+                422,
+                "caller_application_id_forbidden",
+                "Application identity is resolved from the authenticated credential.",
+                task_id=body.request.task_id,
+                trace_id=body.request.trace_id,
+            )
         try:
             controls = dependencies.controls
             if body.idempotency_key is not None:
@@ -187,7 +223,7 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
                     update={"idempotency_key": body.idempotency_key}
                 )
             task = execute(
-                body.request,
+                request,
                 replace(dependencies, controls=controls),
                 supplied_classification=body.classification,
             )
@@ -300,6 +336,17 @@ def create_app(dependencies: ExecutionDependencies) -> FastAPI:
 
     register_telemetry(app, dependencies)
     return app
+
+
+def _trusted_request(
+    request: Request,
+    trusted_application_id: str | None,
+) -> Request | None:
+    if trusted_application_id is None:
+        return request
+    if request.application_id is not None:
+        return None
+    return request.model_copy(update={"application_id": trusted_application_id})
 
 
 def _environment(

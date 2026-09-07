@@ -1,19 +1,23 @@
-"""SQLite SQLAlchemy repository with transactional outbox and recovery journal."""
+"""Portable SQLAlchemy task storage with a durable local recovery journal."""
 
 from __future__ import annotations
 
 import json
 import os
+import fcntl
+import math
+import sqlite3
 from collections.abc import Mapping
-from datetime import UTC, datetime
-from decimal import Decimal
+from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import Lock, RLock
 from typing import Any, Callable
 
-from sqlalchemy import Engine, create_engine, select, update
+from sqlalchemy import Engine, create_engine, event as sqlalchemy_event, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -29,6 +33,9 @@ from model_router.core.execution_contracts import (
 from model_router.storage.models import (
     AttemptRow,
     Base,
+    BudgetAllocationRow,
+    BudgetReservationRow,
+    BudgetTaskRow,
     EvaluationRow,
     ModelCatalogVersionRow,
     OutboxRow,
@@ -76,19 +83,102 @@ def create_schema(engine: Engine) -> None:
     Base.metadata.create_all(engine)
 
 
-class SQLiteTaskRepository:
-    """A synchronous local repository implementing the core ``TaskRepository`` port.
+class SQLTaskRepository:
+    """A synchronous SQLite/PostgreSQL implementation of ``TaskRepository``.
 
     Construction never creates tables. Call the Alembic upgrade helper (or the
     explicit ``create_schema`` test helper) before use.
     """
 
-    def __init__(self, database_url: str, *, journal_path: str | Path):
-        if not database_url.startswith("sqlite"):
-            raise ValueError("Phase 3 repository requires a SQLite database URL")
-        self.engine = create_engine(database_url, future=True)
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        journal_path: str | Path,
+        sqlite_busy_timeout_ms: int | None = None,
+        connection_timeout_ms: int = 5_000,
+        pool_size: int = 5,
+    ):
+        if not database_url.startswith(("sqlite", "postgresql")):
+            raise ValueError("repository requires a SQLite or PostgreSQL database URL")
+        if (
+            isinstance(connection_timeout_ms, bool)
+            or connection_timeout_ms <= 0
+            or isinstance(pool_size, bool)
+            or pool_size <= 0
+        ):
+            raise ValueError("connection_timeout_ms and pool_size must be positive")
+        if sqlite_busy_timeout_ms is not None and (
+            isinstance(sqlite_busy_timeout_ms, bool) or sqlite_busy_timeout_ms <= 0
+        ):
+            raise ValueError("sqlite_busy_timeout_ms must be positive")
+        busy_timeout_ms = sqlite_busy_timeout_ms or connection_timeout_ms
+        engine_options: dict[str, Any] = {
+            "future": True,
+            "pool_pre_ping": True,
+            "pool_size": pool_size,
+        }
+        if database_url.startswith("sqlite"):
+            engine_options["connect_args"] = {
+                "timeout": busy_timeout_ms / 1000,
+                "check_same_thread": False,
+            }
+            if ":memory:" not in database_url:
+                engine_options["pool_timeout"] = connection_timeout_ms / 1000
+                engine_options["max_overflow"] = 0
+        else:
+            engine_options["pool_timeout"] = connection_timeout_ms / 1000
+            engine_options["max_overflow"] = 0
+            engine_options["connect_args"] = {
+                "connect_timeout": max(1, math.ceil(connection_timeout_ms / 1000))
+            }
+        self.engine = create_engine(database_url, **engine_options)
+        if self.engine.dialect.name == "sqlite":
+            @sqlalchemy_event.listens_for(self.engine, "connect")
+            def _configure_sqlite(dbapi_connection: Any, _connection_record: Any) -> None:
+                cursor = dbapi_connection.cursor()
+                try:
+                    cursor.execute("PRAGMA foreign_keys=ON")
+                    cursor.execute(f"PRAGMA busy_timeout={int(busy_timeout_ms)}")
+                    try:
+                        cursor.execute("PRAGMA journal_mode=WAL")
+                    except sqlite3.OperationalError as error:
+                        # Another process can be negotiating the same persistent
+                        # WAL mode. BEGIN IMMEDIATE below still fails closed if
+                        # the database is not usable after the busy timeout.
+                        if "locked" not in str(error).lower():
+                            raise
+                finally:
+                    cursor.close()
         self.journal_path = Path(journal_path)
         self._journal_lock = _journal_lock(self.journal_path)
+
+    @contextmanager
+    def _write_session(self):
+        """Serialize SQLite writers and use ordinary transactions on PostgreSQL."""
+
+        connection = self.engine.connect()
+        transaction = None
+        try:
+            if self.engine.dialect.name == "sqlite":
+                connection.exec_driver_sql("BEGIN IMMEDIATE")
+            else:
+                transaction = connection.begin()
+            with Session(bind=connection) as session:
+                yield session
+                session.flush()
+            if transaction is None:
+                connection.commit()
+            else:
+                transaction.commit()
+        except Exception:
+            if transaction is None:
+                connection.rollback()
+            elif transaction.is_active:
+                transaction.rollback()
+            raise
+        finally:
+            connection.close()
 
     def create(
         self,
@@ -103,8 +193,10 @@ class SQLiteTaskRepository:
             raise ValueError("create requires a matching TASK_CREATED event")
         if not scope or not request_digest:
             raise ValueError("scope and request_digest are required")
+        if task.application_id is not None and task.application_id != scope:
+            raise IdempotencyConflict("task application does not match its storage scope")
         try:
-            with Session(self.engine) as session, session.begin():
+            with self._write_session() as session:
                 duplicate = self._find_duplicate(session, task.task_id, scope, key_digest)
                 if duplicate is not None:
                     return self._resolve_duplicate(duplicate, request_digest)
@@ -134,16 +226,19 @@ class SQLiteTaskRepository:
         events: tuple[ExecutionEvent, ...],
         *,
         expected_revision: int,
+        scope: str | None = None,
     ) -> None:
         if task.revision != expected_revision + 1:
             raise ConcurrentUpdate("new task revision must follow expected revision")
         if any(event.task_id != task.task_id for event in events):
             raise ValueError("event task_id does not match task")
         try:
-            with Session(self.engine) as session, session.begin():
+            with self._write_session() as session:
                 row = session.get(TaskRow, task.task_id)
                 if row is None or row.revision != expected_revision:
                     raise ConcurrentUpdate("task revision changed")
+                if scope is not None and row.idempotency_scope != scope:
+                    raise IdempotencyConflict("task belongs to another application scope")
                 previous = TaskResult.model_validate_json(row.payload_json)
                 self._verify_task_progression(previous, task)
                 self._persist_children(session, task)
@@ -163,20 +258,29 @@ class SQLiteTaskRepository:
                     raise ConcurrentUpdate("task revision changed")
                 for event in events:
                     self._insert_event(session, event)
-        except ConcurrentUpdate:
+        except (ConcurrentUpdate, IdempotencyConflict):
             raise
         except IntegrityError:
             raise ConcurrentUpdate("conflicting immutable evidence") from None
         except SQLAlchemyError:
             raise RepositoryUnavailable("storage unavailable") from None
 
-    def get(self, task_id: str) -> TaskResult | None:
+    def get(self, task_id: str, *, scope: str | None = None) -> TaskResult | None:
         try:
             with Session(self.engine) as session:
                 row = session.get(TaskRow, task_id)
+                if row is not None and scope is not None and row.idempotency_scope != scope:
+                    raise IdempotencyConflict("task belongs to another application scope")
                 return None if row is None else TaskResult.model_validate_json(row.payload_json)
+        except IdempotencyConflict:
+            raise
         except SQLAlchemyError:
             raise RepositoryUnavailable("storage unavailable") from None
+
+    def get_scoped(self, task_id: str, scope: str) -> TaskResult | None:
+        if not scope:
+            raise ValueError("scope is required")
+        return self.get(task_id, scope=scope)
 
     def retain_pending(self, task: TaskResult, events: tuple[ExecutionEvent, ...]) -> None:
         """Append and fsync a content-free recovery record."""
@@ -187,7 +291,7 @@ class SQLiteTaskRepository:
             "events": [event_payload(event) for event in events],
         }
         try:
-            with self._journal_lock:
+            with self._journal_guard():
                 self.journal_path.parent.mkdir(parents=True, exist_ok=True)
                 with self.journal_path.open("a", encoding="utf-8") as stream:
                     stream.write(_json(record) + "\n")
@@ -200,8 +304,25 @@ class SQLiteTaskRepository:
     def reconcile_pending(self) -> int:
         """Replay durable journal entries and retain only entries still failing."""
 
-        with self._journal_lock:
+        with self._journal_guard():
             return self._reconcile_pending_unlocked()
+
+    @contextmanager
+    def _journal_guard(self):
+        """Hold both the process-local mutex and a stable cross-process flock."""
+
+        with self._journal_lock:
+            lock_path = self.journal_path.with_name(self.journal_path.name + ".lock")
+            try:
+                lock_path.parent.mkdir(parents=True, exist_ok=True)
+                with lock_path.open("a+b") as lock_stream:
+                    fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+                    try:
+                        yield
+                    finally:
+                        fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                raise RepositoryUnavailable("recovery journal unavailable") from None
 
     def _reconcile_pending_unlocked(self) -> int:
         """Run replay while the path-wide in-process journal lock is held."""
@@ -248,23 +369,126 @@ class SQLiteTaskRepository:
                 rows = session.scalars(
                     select(OutboxRow)
                     .where(OutboxRow.acknowledged_at.is_(None))
-                    .order_by(OutboxRow.occurred_at, OutboxRow.event_id)
+                    .order_by(OutboxRow.occurred_at, OutboxRow.sequence, OutboxRow.event_id)
                     .limit(limit)
                 ).all()
                 return tuple(ExecutionEvent.model_validate_json(row.payload_json) for row in rows)
         except SQLAlchemyError:
             raise RepositoryUnavailable("storage unavailable") from None
 
-    def ack_outbox(self, event_id: str) -> None:
-        """Idempotently acknowledge an event, including an already-acked event."""
+    def claim_outbox(
+        self,
+        owner_id: str,
+        *,
+        limit: int = 100,
+        lease_seconds: int = 30,
+    ) -> tuple[ExecutionEvent, ...]:
+        """Lease pending events to one delivery worker without losing expired work."""
+
+        if not owner_id:
+            raise ValueError("owner_id is required")
+        if limit <= 0:
+            return ()
+        if isinstance(lease_seconds, bool) or lease_seconds <= 0:
+            raise ValueError("lease_seconds must be positive")
+        now = datetime.now(UTC).replace(tzinfo=None)
+        expires = now + timedelta(seconds=lease_seconds)
+        try:
+            with self._write_session() as session:
+                statement = (
+                    select(OutboxRow)
+                    .where(
+                        OutboxRow.acknowledged_at.is_(None),
+                        or_(
+                            OutboxRow.claim_owner.is_(None),
+                            OutboxRow.claim_expires_at.is_(None),
+                            OutboxRow.claim_expires_at <= now,
+                            OutboxRow.claim_owner == owner_id,
+                        ),
+                    )
+                    .order_by(OutboxRow.occurred_at, OutboxRow.sequence, OutboxRow.event_id)
+                    .limit(limit)
+                )
+                if self.engine.dialect.name == "postgresql":
+                    statement = statement.with_for_update(skip_locked=True)
+                rows = session.scalars(statement).all()
+                for row in rows:
+                    row.claim_owner = owner_id
+                    row.claim_expires_at = expires
+                return tuple(ExecutionEvent.model_validate_json(row.payload_json) for row in rows)
+        except SQLAlchemyError:
+            raise RepositoryUnavailable("storage unavailable") from None
+
+    def ack_outbox(self, event_id: str, *, owner_id: str | None = None) -> bool:
+        """Acknowledge an event; a leased event can only be acked by its owner."""
 
         try:
-            with Session(self.engine) as session, session.begin():
-                session.execute(
-                    update(OutboxRow)
-                    .where(OutboxRow.event_id == event_id, OutboxRow.acknowledged_at.is_(None))
-                    .values(acknowledged_at=datetime.now(UTC))
+            with self._write_session() as session:
+                row = session.get(OutboxRow, event_id)
+                if row is None:
+                    return False
+                if row.acknowledged_at is not None:
+                    return owner_id is None or row.claim_owner in (None, owner_id)
+                if row.claim_owner is not None and row.claim_owner != owner_id:
+                    return False
+                if (
+                    row.claim_owner is not None
+                    and row.claim_expires_at is not None
+                    and row.claim_expires_at <= datetime.now(UTC).replace(tzinfo=None)
+                ):
+                    return False
+                row.acknowledged_at = datetime.now(UTC).replace(tzinfo=None)
+                return True
+        except SQLAlchemyError:
+            raise RepositoryUnavailable("storage unavailable") from None
+
+    def readiness(self, *, max_pending_outbox: int = 10_000) -> dict[str, Any]:
+        """Return fail-closed durable backlog evidence for release preflight."""
+
+        if max_pending_outbox < 0:
+            raise ValueError("max_pending_outbox must be nonnegative")
+        try:
+            with Session(self.engine) as session:
+                revision = session.scalar(text("SELECT version_num FROM alembic_version"))
+                pending = int(
+                    session.scalar(
+                        select(func.count()).select_from(OutboxRow).where(
+                            OutboxRow.acknowledged_at.is_(None)
+                        )
+                    )
+                    or 0
                 )
+            with self._journal_guard():
+                journal_pending = self.journal_path.exists() and bool(
+                    self.journal_path.read_text(encoding="utf-8").strip()
+                )
+        except (OSError, RepositoryUnavailable, SQLAlchemyError):
+            return {
+                "ready": False,
+                "migration_revision": None,
+                "journal_pending": True,
+                "outbox_pending": None,
+                "reason": "storage_unavailable",
+            }
+        reason = None
+        if journal_pending:
+            reason = "recovery_journal_pending"
+        elif pending > max_pending_outbox:
+            reason = "outbox_backlog_exceeded"
+        return {
+            "ready": reason is None,
+            "migration_revision": revision,
+            "journal_pending": journal_pending,
+            "outbox_pending": pending,
+            "reason": reason,
+        }
+
+    def current_migration_revision(self) -> str | None:
+        """Return the Alembic revision, or ``None`` for an initialized empty database."""
+
+        try:
+            with Session(self.engine) as session:
+                return session.scalar(text("SELECT version_num FROM alembic_version"))
         except SQLAlchemyError:
             raise RepositoryUnavailable("storage unavailable") from None
 
@@ -326,7 +550,7 @@ class SQLiteTaskRepository:
             for version, _, _ in pricing
         }
         try:
-            with Session(self.engine) as session, session.begin():
+            with self._write_session() as session:
                 self._put_immutable(session, PolicyVersionRow, policy_version, policy_snapshot)
                 self._put_immutable(session, ModelCatalogVersionRow, catalog_version, catalog_snapshot)
                 for price_version, model_alias, price_snapshot in pricing:
@@ -343,7 +567,7 @@ class SQLiteTaskRepository:
 
     def _store_immutable(self, row_type: type, version: str, snapshot: dict[str, Any]) -> None:
         try:
-            with Session(self.engine) as session, session.begin():
+            with self._write_session() as session:
                 self._put_immutable(session, row_type, version, snapshot)
         except ConcurrentUpdate:
             raise
@@ -353,6 +577,18 @@ class SQLiteTaskRepository:
     @staticmethod
     def _put_immutable(session: Session, row_type: type, version: str, snapshot: Any) -> None:
         payload = _json(snapshot)
+        if session.bind is not None and session.bind.dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+
+            session.execute(
+                postgresql_insert(row_type)
+                .values(version_id=version, snapshot_json=payload)
+                .on_conflict_do_nothing(index_elements=["version_id"])
+            )
+            row = session.get(row_type, version, populate_existing=True)
+            if row is None or row.snapshot_json != payload:
+                raise ConcurrentUpdate("activated version snapshot is immutable")
+            return
         row = session.get(row_type, version)
         if row is None:
             session.add(row_type(version_id=version, snapshot_json=payload))
@@ -625,11 +861,18 @@ class SQLiteTaskRepository:
         payload = _json(event_payload(event))
         existing = session.get(OutboxRow, event.event_id)
         if existing is None:
+            sequence = int(
+                session.scalar(
+                    select(func.max(OutboxRow.sequence)).where(OutboxRow.task_id == event.task_id)
+                )
+                or 0
+            ) + 1
             session.add(
                 OutboxRow(
                     event_id=event.event_id,
                     task_id=event.task_id,
                     kind=event.kind,
+                    sequence=sequence,
                     occurred_at=event.occurred_at,
                     payload_json=payload,
                 )
@@ -639,7 +882,7 @@ class SQLiteTaskRepository:
 
     def _ensure_events(self, events: tuple[ExecutionEvent, ...]) -> None:
         try:
-            with Session(self.engine) as session, session.begin():
+            with self._write_session() as session:
                 for event in events:
                     self._insert_event(session, event)
         except ConcurrentUpdate:
@@ -670,3 +913,29 @@ class SQLiteTaskRepository:
             os.fsync(directory_fd)
         finally:
             os.close(directory_fd)
+
+
+class SQLiteTaskRepository(SQLTaskRepository):
+    """Backward-compatible name that continues to reject non-SQLite URLs."""
+
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        journal_path: str | Path,
+        sqlite_busy_timeout_ms: int | None = None,
+        connection_timeout_ms: int = 5_000,
+        pool_size: int = 5,
+    ) -> None:
+        if not database_url.startswith("sqlite"):
+            raise ValueError("SQLiteTaskRepository requires a SQLite database URL")
+        super().__init__(
+            database_url,
+            journal_path=journal_path,
+            sqlite_busy_timeout_ms=sqlite_busy_timeout_ms,
+            connection_timeout_ms=connection_timeout_ms,
+            pool_size=pool_size,
+        )
+
+
+__all__ = ["SQLTaskRepository", "SQLiteTaskRepository", "create_schema"]

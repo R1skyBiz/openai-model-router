@@ -44,6 +44,8 @@ class ExecutionDependencies:
     health: object | None = None
     shadow: object | None = None
     cancelled: Callable[[], bool] = field(default=lambda: False)
+    live: object | None = None
+    release_readiness: Callable[[], dict] | None = None
 
 
 def execute(request: Request, dependencies: ExecutionDependencies, *,
@@ -71,6 +73,11 @@ class _EnvironmentChanged(RuntimeError):
 class _Execution(VerificationMixin):
     def __init__(self, request, deps, classification):
         self.request, self.d, self.classification = request, deps, classification
+        if deps.live is not None:
+            from model_router.execution.live import LiveExecutionAuthorization
+            if not isinstance(deps.live, LiveExecutionAuthorization):
+                raise ValueError("invalid live authorization boundary")
+            self.request = deps.live.bound_request(request)
         now = deps.clock.now()
         self.task = TaskResult(task_id=request.task_id, trace_id=request.trace_id,
             status=TaskStatus.CREATED, policy_version=deps.bundle.policy['version'],
@@ -168,12 +175,16 @@ class _Execution(VerificationMixin):
 
     def checkpoint(self):
         self.environment()  # Recheck trusted prerequisites at every action boundary.
+        if self.d.live is not None and not self.d.live.ready():
+            return self.failure(FailureType.CAPABILITY_FAILURE, "live_preflight_unavailable")
         if self.d.health is not None and not self.d.health.dependency_readiness().ready:
             return self.failure(FailureType.PROVIDER_FAILURE, 'required_health_unavailable')
         if self.budget_unavailable:
             return self.failure(FailureType.BUDGET_FAILURE, 'budget_authority_unavailable')
         if self.cost_violation:
             return self.failure(FailureType.BUDGET_FAILURE, "actual_cost_exceeded_reservation")
+        if self.d.live is not None and any(a.status != AttemptStatus.STARTED and a.actual_cost_usd is None for a in self.task.attempts):
+            return self.failure(FailureType.BUDGET_FAILURE, 'live_attempt_cost_unknown')
         if self.d.cancelled():
             return self.failure(FailureType.UNKNOWN_FAILURE, 'cancelled')
         if self.limits is not None and self.elapsed() >= self.limits.max_elapsed_ms:
@@ -220,10 +231,15 @@ class _Execution(VerificationMixin):
         except RepositoryUnavailable:
             return self.stop(self.failure(FailureType.PROVIDER_FAILURE, 'configuration_snapshot_unavailable', 'storage'),
                              status=TaskStatus.BLOCKED)
-        if not env.synthetic:
+        if self.d.live is not None:
+            if (env.synthetic or not self.d.live.ready() or self.d.controls.tool_calls
+                    or self.request.side_effecting_tool or self.d.shadow is not None
+                    or self.d.semantic is not None):
+                return self.stop(self.failure(FailureType.CAPABILITY_FAILURE, "live_preflight_unavailable"), status=TaskStatus.BLOCKED)
+        if not env.synthetic and self.d.live is None:
             return self.stop(self.failure(FailureType.CAPABILITY_FAILURE, 'production_execution_disabled'), status=TaskStatus.BLOCKED)
         from model_router.execution.provider import MockProvider
-        if not isinstance(self.d.provider, MockProvider):
+        if not isinstance(self.d.provider, MockProvider) and self.d.live is None:
             return self.stop(self.failure(FailureType.CAPABILITY_FAILURE, 'mock_provider_required'), status=TaskStatus.BLOCKED)
         if self.limits is None:
             return self.stop(self.failure(FailureType.BUDGET_FAILURE, 'finite_execution_limits_required'), status=TaskStatus.BLOCKED)
@@ -244,16 +260,24 @@ class _Execution(VerificationMixin):
             # Paid classification needs an invocation-level reservation wrapper;
             # this phase does not permit bypassing that through Classifier.classify.
             from model_router.classification import MockClassifier
-            if not isinstance(self.d.classifier, MockClassifier):
+            if self.d.live is not None and self.d.live.classifier_factory is not None:
+                classified = self.d.live.classifier_factory(_AdmittedClassifierProvider(self)).classify(self.request)
+                if isinstance(classified, ClassificationFailure):
+                    return self.stop(self.failure(classified.failure_type, classified.cause_code, "classifier"))
+                if any(attempt.actual_cost_usd is None for attempt in self.task.attempts):
+                    return self.stop(self.failure(FailureType.BUDGET_FAILURE, 'classifier_cost_unknown', 'classifier'))
+                self.classification = classified.classification
+            elif not isinstance(self.d.classifier, MockClassifier):
                 return self.stop(self.failure(FailureType.CAPABILITY_FAILURE, 'admitted_mock_classifier_required'), status=TaskStatus.BLOCKED)
             check = check_admission(self.request, self.d.controls, self.limits, self.task.counters,
                 self.elapsed(), self.remaining(), Decimal('0'), action='classification')
             if check:
                 return self.stop(check, status=TaskStatus.BLOCKED)
-            classified = self.d.classifier.classify(self.request)
-            if isinstance(classified, ClassificationFailure):
-                return self.stop(self.failure(classified.failure_type, classified.cause_code, 'classifier'))
-            self.classification = classified.classification
+            if self.classification is None:
+                classified = self.d.classifier.classify(self.request)
+                if isinstance(classified, ClassificationFailure):
+                    return self.stop(self.failure(classified.failure_type, classified.cause_code, 'classifier'))
+                self.classification = classified.classification
         self.task = transition(self.task, TaskStatus.CLASSIFIED, now=self.d.clock.now(), classification=self.classification)
         self.save(self.event('TASK_CLASSIFIED'))
         decision = self.select()
@@ -293,7 +317,9 @@ class _Execution(VerificationMixin):
             if self.task.status in {TaskStatus.ROUTED, TaskStatus.ADMITTED}:
                 return self.stop(failure, status=TaskStatus.BLOCKED)
             self.task = transition(self.task, TaskStatus.RECOVERING, now=self.d.clock.now())
-            context = RecoveryContext(decision=decision, failure=failure, counters=self.task.counters,
+            from model_router.execution.live import ReleaseRecoveryContext
+            recovery_type = ReleaseRecoveryContext if self.d.live else RecoveryContext
+            context = recovery_type(decision=decision, failure=failure, counters=self.task.counters,
                 limits=self.limits, environment=self.environment(), remaining_usd=self.remaining(),
                 elapsed_ms=self.elapsed(), validated=validated, original_failure=original)
             action = (RecoveryAction(action='diagnose', failure=failure.failure_type,
@@ -344,6 +370,11 @@ class _Execution(VerificationMixin):
         if isinstance(decision, RouteRejection):
             return ('route_rejected',)
         blockers = list(decision.readiness_blockers)
+        # Route previews do not reserve money. Only the explicitly composed
+        # durable authority can discharge this execution-time placeholder.
+        if ('period_budget_unverified' in blockers and self.d.live is not None
+                and self.d.live.allocation_ready(self.task.task_id)):
+            blockers.remove('period_budget_unverified')
         # Phase 1's placeholder blocker is discharged only by explicit scoped
         # Phase 3 tool authorization, never by forging a route-only preview.
         if 'side_effect_execution_unconfigured' in blockers and self.d.controls.side_effects_authorized and self.d.tools and self.d.controls.tool_calls:
@@ -395,6 +426,8 @@ class _Execution(VerificationMixin):
         quote = decision.estimated_cost
         miss = decision.rationale_details.get('cache_miss_budget_estimates', {}).get(decision.selected_model_alias)
         estimate = max(quote.generation_subtotal, Decimal(miss['generation_subtotal'])) if miss else quote.generation_subtotal
+        if self.d.live is not None:
+            estimate = max(estimate, self.d.live.upper_cost(self.d.bundle.catalog['models'][decision.selected_model_alias], self.request.context.expected_output_tokens))
         check_cost = quote.amount
         validation_bound = self.d.validator.upper_bound(self.d.controls)
         semantic_bound = self.semantic_bound(decision)
@@ -442,9 +475,15 @@ class _Execution(VerificationMixin):
             model_alias=decision.selected_model_alias, provider_model_id=decision.provider_model_id,
             reasoning_effort=decision.reasoning_effort, input=self.request.input,
             output_type=self.d.controls.output_type, max_output_tokens=max(1, self.request.context.expected_output_tokens),
-            timeout_ms=max(1, self.limits.max_elapsed_ms - self.elapsed()))
+            timeout_ms=min(self.d.live.provider_timeout_ms if self.d.live else self.limits.max_elapsed_ms,
+                max(1, self.limits.max_elapsed_ms - self.elapsed())))
         try:
-            outcome = self.d.provider.execute(request)
+            if self.d.live is not None and not self.d.live.allows(request):
+                from model_router.execution.provider import request_evidence
+                outcome = ProviderFailure(**request_evidence(request), failure_type=FailureType.CAPABILITY_FAILURE,
+                    source="adapter", stage="preflight", cause_code="live_input_or_preflight_blocked")
+            else:
+                outcome = self.d.provider.execute(request)
             if not isinstance(outcome, (ProviderResult, ProviderFailure)) or any(
                 getattr(outcome, a) != getattr(request, a) for a in ('task_id', 'trace_id', 'invocation_id',
                     'policy_version', 'catalog_version', 'model_alias', 'provider_model_id', 'reasoning_effort', 'purpose')):
@@ -453,7 +492,7 @@ class _Execution(VerificationMixin):
             from model_router.execution.provider import request_evidence
             outcome = ProviderFailure(**request_evidence(request), failure_type=FailureType.UNKNOWN_FAILURE,
                 source='adapter', stage='invocation', cause_code='provider_contract_error')
-        actual = provider_cost(self.request, outcome, self.d.bundle, env)
+        actual = Decimal("0") if isinstance(outcome, ProviderFailure) and outcome.stage == "preflight" else provider_cost(self.request, outcome, self.d.bundle, env)
         interim = started.model_copy(update={'provider_outcome': outcome, 'actual_cost_usd': actual})
         self.task = self.task.model_copy(update={'attempts': (*self.task.attempts[:-1], interim)})
         self.save()  # Provider evidence survives even a failed ledger settlement.
@@ -585,3 +624,60 @@ class _Execution(VerificationMixin):
                 replay = True
                 self.task = transition(self.task, TaskStatus.VALIDATING, now=self.d.clock.now())
         return None
+
+
+class _AdmittedClassifierProvider:
+    """Persist and reserve a classifier call before the normalizer sees output."""
+    def __init__(self, execution):
+        self.e = execution
+        self.invoked = False
+
+    def execute(self, request):
+        e = self.e
+        from model_router.execution.provider import request_evidence
+        def refused(code):
+            return ProviderFailure(**request_evidence(request), failure_type=FailureType.CAPABILITY_FAILURE,
+                source='adapter', stage='preflight', cause_code=code)
+        if (self.invoked or request.purpose != 'classification' or request.task_id != e.task.task_id
+                or request.trace_id != e.task.trace_id or request.policy_version != e.task.policy_version
+                or request.catalog_version != e.d.bundle.catalog['catalog_version']):
+            return refused('classifier_invocation_not_authorized')
+        self.invoked = True
+        if e.checkpoint() or not e.d.live.allows(request):
+            return refused('live_classifier_preflight_blocked')
+        model = e.d.bundle.catalog['models'][request.model_alias]
+        estimate = e.d.live.upper_cost(model, request.max_output_tokens)
+        if estimate > e.remaining() or not e.reserve(request.invocation_id, estimate):
+            return refused('classifier_budget_unavailable')
+        started = Attempt(attempt_id=request.invocation_id, task_id=e.task.task_id, trace_id=e.task.trace_id,
+            sequence=len(e.task.attempts)+1, purpose='classification', status=AttemptStatus.STARTED,
+            started_at=e.d.clock.now(), estimated_cost_usd=estimate, pricing_version=model['pricing']['version'])
+        e.task = e.task.model_copy(update={'attempts': (*e.task.attempts, started)})
+        e.save(e.event('ATTEMPT_STARTED', attempt_id=request.invocation_id))
+        if e.checkpoint() or not e.d.live.allows(request):
+            outcome = refused('live_classifier_preflight_blocked')
+        else:
+            request = request.model_copy(update={'timeout_ms': min(request.timeout_ms, e.d.live.provider_timeout_ms,
+                max(1, e.limits.max_elapsed_ms-e.elapsed()))})
+            try:
+                outcome = e.d.provider.execute(request)
+                if not isinstance(outcome, (ProviderResult, ProviderFailure)) or any(
+                    getattr(outcome, key) != getattr(request, key) for key in ('task_id','trace_id','invocation_id',
+                        'policy_version','catalog_version','model_alias','provider_model_id','reasoning_effort','purpose')):
+                    raise ValueError('provider correlation mismatch')
+            except Exception:
+                outcome = ProviderFailure(**request_evidence(request), failure_type=FailureType.UNKNOWN_FAILURE,
+                    source='adapter', stage='invocation', cause_code='classifier_provider_contract_error')
+        actual = Decimal('0') if isinstance(outcome, ProviderFailure) and outcome.stage == 'preflight' else provider_cost(e.request, outcome, e.d.bundle, e.environment())
+        interim = started.model_copy(update={'provider_outcome': outcome, 'actual_cost_usd': actual})
+        e.task = e.task.model_copy(update={'attempts': (*e.task.attempts[:-1], interim)})
+        e.save()
+        e.charge(request.invocation_id, actual, estimate)
+        failure = e.failure(outcome.failure_type, outcome.cause_code, 'classifier') if isinstance(outcome, ProviderFailure) else None
+        completed = finish_attempt(started, interim.model_copy(update={
+            'status': AttemptStatus.FAILED if failure else AttemptStatus.SUCCEEDED,
+            'completed_at': e.d.clock.now(), 'failure': failure}))
+        e.task = e.task.model_copy(update={'attempts': (*e.task.attempts[:-1], completed)})
+        e.save(e.event('ATTEMPT_COMPLETED', attempt_id=request.invocation_id,
+            failure=failure.failure_type if failure else None))
+        return outcome

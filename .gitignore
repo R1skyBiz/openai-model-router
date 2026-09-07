@@ -36,3 +36,8 @@ dashboard/node_modules/
 dashboard/dist/
 dashboard/coverage/
 dashboard/*.tsbuildinfo
+
+# Phase 6 local verification/build artifacts
+/.demo-phase6/
+/dist/
+/.release/

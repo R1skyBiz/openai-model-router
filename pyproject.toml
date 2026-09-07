@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "openai-model-router"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "Configuration-driven routing for OpenAI models"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,16 +15,44 @@ dependencies = [
   "pydantic>=2.10,<3",
   "pyyaml>=6.0",
   "sqlalchemy>=2.0",
+  "uvicorn>=0.30",
 ]
+
+[project.scripts]
+model-router = "model_router.release.cli:main"
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3",
-  "uvicorn>=0.30",
+]
+postgres = [
+    "psycopg[binary]>=3.2,<4",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/model_router"]
+force-include = { "migrations" = "model_router/storage/alembic", "dashboard/dist" = "model_router/dashboard" }
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.dockerignore",
+  "/.github/workflows/release-ci.yml",
+  "/Dockerfile",
+  "/README.md",
+  "/config",
+  "/dashboard",
+  "/docs",
+  "/evals",
+  "/examples",
+  "/migrations",
+  "/pyproject.toml",
+  "/scripts",
+  "/skills",
+  "/src",
+  "/tests",
+  "/uv.lock",
+]
+force-include = { "dashboard/dist" = "dashboard/dist" }
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -32,6 +60,7 @@ testpaths = ["tests"]
 pythonpath = [".", "src"]
 markers = [
   "live_openai: explicitly opted-in paid OpenAI checks (skipped by default)",
+  "postgresql: integration tests requiring an explicit disposable PostgreSQL database",
 ]
 
 [tool.uv]

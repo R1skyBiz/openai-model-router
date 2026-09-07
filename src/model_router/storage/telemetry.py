@@ -1,11 +1,11 @@
-"""Read-only, transactionally consistent telemetry evidence from SQLite."""
+"""Read-only, transactionally consistent telemetry evidence from SQL storage."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import literal_column, select
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,7 @@ from model_router.core.execution_contracts import (
     TaskResult,
 )
 from model_router.storage.models import OutboxRow, TaskRow
-from model_router.storage.repository import SQLiteTaskRepository
+from model_router.storage.repository import SQLTaskRepository
 
 
 @dataclass(frozen=True)
@@ -31,29 +31,29 @@ class TelemetrySnapshot:
 def read_telemetry_snapshot(repository: object) -> TelemetrySnapshot:
     """Read tasks and their complete outbox history in one database transaction."""
 
-    if not isinstance(repository, SQLiteTaskRepository):
+    if not isinstance(repository, SQLTaskRepository):
         raise RepositoryUnavailable("telemetry storage is unsupported")
     try:
         # Python's legacy sqlite transaction mode does not issue BEGIN for a
         # SELECT.  Start it explicitly so both tables come from one snapshot.
         with repository.engine.connect() as connection:
-            connection.exec_driver_sql("BEGIN")
+            transaction = None
+            if repository.engine.dialect.name == "sqlite":
+                connection.exec_driver_sql("BEGIN")
+            else:
+                transaction = connection.begin()
             with Session(bind=connection) as session:
                 task_payloads = session.scalars(
                     select(TaskRow.payload_json).order_by(TaskRow.task_id)
                 ).all()
-                # The schema has no event sequence column. SQLite rowid is the
-                # retained append order and is therefore the only factual
-                # tie-break for events emitted at the same instant.
-                outbox_rowid = literal_column("outbox.rowid")
                 outbox_rows = session.execute(
                     select(
                         OutboxRow.event_id,
                         OutboxRow.occurred_at,
                         OutboxRow.payload_json,
                         OutboxRow.acknowledged_at,
-                        outbox_rowid,
-                    ).order_by(OutboxRow.occurred_at, outbox_rowid)
+                        OutboxRow.sequence,
+                    ).order_by(OutboxRow.occurred_at, OutboxRow.sequence, OutboxRow.event_id)
                 ).all()
             connection.rollback()
         tasks = tuple(TaskResult.model_validate_json(payload) for payload in task_payloads)

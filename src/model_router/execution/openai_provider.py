@@ -259,9 +259,10 @@ def _raw_envelope(raw_response: object) -> Mapping[str, object]:
 
 class OpenAIProvider:
     """Translate one provider request to one Responses API invocation."""
-    def __init__(self, bundle: PolicyBundle, *, client: object | None = None):
+    def __init__(self, bundle: PolicyBundle, *, client: object | None = None, api_key: str | None = None):
         self._bundle = bundle
         self._client = client
+        self._api_key = api_key
 
     def _base_client(self) -> object:
         # Finish the SDK's environment-controlled logging setup before the
@@ -271,7 +272,7 @@ class OpenAIProvider:
             return self._client
         if os.environ.get("RUN_LIVE_OPENAI_TESTS") != "1":
             raise RuntimeError("live_provider_disabled")
-        self._client = OpenAI()
+        self._client = OpenAI(api_key=self._api_key, max_retries=0)
         return self._client
 
     def execute(self, request: ProviderRequest) -> ProviderResult | ProviderFailure:
@@ -373,3 +374,22 @@ class OpenAIProvider:
                 latency_ms=latency_ms, response=response, diagnostic_fields=("response",))
 
 __all__ = ["OpenAIProvider"]
+
+
+def verify_model_access(models: Mapping[str, str], *, credential_env: str, timeout_ms: int) -> dict[str, bool]:
+    """Explicit operator probe of model retrieval, not a paid generation canary."""
+    if os.environ.get('RUN_LIVE_OPENAI_TESTS') != '1' or not os.environ.get(credential_env):
+        raise ValueError('explicit live access probe opt-in and credential required')
+    if type(timeout_ms) is not int or timeout_ms <= 0:
+        raise ValueError('finite probe timeout required')
+    from openai import OpenAI
+    results = {}
+    with _quiet_sdk_logs():
+        with OpenAI(api_key=os.environ[credential_env],max_retries=0,timeout=timeout_ms/1000) as client:
+            for alias, identifier in models.items():
+                try:
+                    result = client.models.retrieve(identifier)
+                    results[alias] = result.id == identifier
+                except Exception:
+                    results[alias] = False
+    return results

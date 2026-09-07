@@ -12,8 +12,10 @@ Phase 2 adds a task classifier and a provider adapter for one Responses API call
 Phase 3 adds bounded mock execution, recovery, SQLite evidence and HTTP adapters.
 Phase 4 adds independent validation, scoped health and bounded shadow comparison.
 Phase 5 adds read-only telemetry analytics and a local React dashboard.
-Production remains disabled. See the [Phase 5 report](docs/phase-5-report.md)
-for verification and limitations. Phase 6 has not begun.
+Phase 6 adds versioned activation, per-application authentication, durable SQL
+budgets and local release packaging. The shipped release enables route/read/health
+only. **RC blocked on live verification.** See [production readiness](docs/production-readiness.md),
+[the Phase 6 report](docs/phase-6-report.md), and [deployment](docs/deployment.md).
 
 Start with [implementation phases](docs/implementation-spec-v1.md),
 [architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
@@ -205,17 +207,17 @@ Successful execute returns output in memory/the immediate HTTP response. Ordinar
 serialization, task retrieval, duplicate replay after restart, database rows and
 journal entries retain metadata only. A duplicate returns the original task ID and
 status without dispatching again; it cannot recover deliberately unretained output.
-Required V1/V2/V3 remains blocked. Raw prompt/output capture and all live execution
-remain disabled. Full operational limits, live classifier admission, current-tariff
-refresh, authentication, cross-process reservations and journal locking remain
-production hardening prerequisites.
+This describes the original Phase 3 offline composition. Phase 6 adds explicit
+release activation and durable cross-process admission; live release validation
+is deliberately V0-only. Raw prompt/output retention remains disabled. See the
+[current integration contract](docs/integration.md) for supported release behavior.
 
 ## Phase 4: validation, health and bounded offline shadows
 
 Phase 4 implements configured V1/V2 independent semantic calls, the V3 domain
 boundary, evaluator-only recovery, scoped fresh health/circuits and isolated
 shadow comparison. Production and default shadow/live-probe execution remain
-disabled; Phase 5 has not begun. See [the report](docs/phase-4-report.md),
+disabled by default. See [the report](docs/phase-4-report.md),
 [frozen interfaces](docs/phase-4-interfaces.md), and [ADR 0013](docs/decisions/0013-phase-4-verification-health-shadow.md).
 
 Run `uv run --offline pytest`, `uv run --offline python evals/run_phase4.py --combined`,
