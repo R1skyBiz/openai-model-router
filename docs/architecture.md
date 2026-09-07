@@ -1,8 +1,9 @@
 # Architecture v1
 
 Status: Accepted architecture contract; Phase 1 routing and Phase 2 classifier /
-single-invocation provider adapters are complete. Task orchestration remains
-future work. See [Phase 2 report](phase-2-report.md).
+single-invocation provider adapters are complete. Phase 3 adds bounded offline
+execution and persistence; see [Phase 3 report](phase-3-report.md). Production
+execution remains disabled and Phase 4 has not begun.
 
 ## Mission and ownership
 
@@ -188,3 +189,11 @@ Cross-provider routing; autonomous routing-policy rewriting; reinforcement
 learning; unrestricted self-modification; evaluator calls for every task;
 unnecessary task micro-categories; Kubernetes; Kafka; microservices; enterprise
 IAM; premature distributed observability; unbounded agent execution.
+
+## Phase 3 implementation boundary
+
+[Phase 3 interfaces](phase-3-interfaces.md) and [ADR 0012](decisions/0012-phase-3-execution-persistence.md)
+define the synchronous engine, finite synthetic admission, explicit states, local
+transactional outbox and recovery journal. The optional recovery candidate input
+to the shared router retains full feasibility checks; default routing behavior
+is unchanged. Only MockProvider and MockClassifier execute in this phase.

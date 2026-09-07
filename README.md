@@ -9,7 +9,9 @@ returns an explainable decision or rejection, and performs no network calls.
 The objective is Effective Cost per Successful Task; configured candidate order
 is the transparent cold-start prior until success estimates are calibrated.
 Phase 2 adds a task classifier and a provider adapter for one Responses API call.
-Production execution remains disabled; Phase 3 orchestration has not begun.
+Phase 3 adds bounded mock execution, recovery, SQLite evidence and HTTP adapters.
+Production execution remains disabled; Phase 4 has not begun. See the
+[Phase 3 report](docs/phase-3-report.md), including the deferred V1 evaluator case.
 
 Start with [implementation phases](docs/implementation-spec-v1.md),
 [architecture](docs/architecture.md), [routing policy](docs/routing-policy-v1.md),
@@ -33,7 +35,7 @@ Copy the environment template only when you need local provider access:
 cp .env.example .env
 ```
 
-Default tests and both phase eval runners require no OpenAI API key or network.
+Default tests and all phase eval runners require no OpenAI API key or network.
 Install dependencies once; use `uv run --offline` for subsequent verification.
 
 ## Validate the repository
@@ -43,6 +45,7 @@ uv run pytest
 uv run python evals/run_local.py
 uv run python evals/run_phase1.py
 uv run python evals/run_phase2.py
+uv run python evals/run_phase3.py
 ```
 
 The pytest suite checks contracts, configuration, routing, dependency boundaries,
@@ -129,3 +132,39 @@ claimed by the offline test results.
 - `migrations/`: future Alembic migrations
 - `dashboard/`: future operational dashboard
 - `skills/model-router/`: Codex skill instructions for this project
+
+## Phase 3 execution
+
+`from model_router.execution import execute, ExecutionDependencies` exposes the
+shared synchronous engine. Call `execute(request, dependencies,
+supplied_classification=classification)`; omit classification to use an injected
+MockClassifier. Dependencies supply a validated bundle, synthetic environment,
+MockProvider, finite ExecutionLimits, trusted ExecutionControls, budget authority,
+clock, repository, V0 validator and optional deterministic tools. The
+[working test composition](tests/phase3_support.py) supplies a complete example.
+No default execution composition enables live work.
+
+Initialize local SQLite explicitly with
+`model_router.storage.upgrade_database(database_url)`, then construct
+`SQLiteTaskRepository(database_url, journal_path=...)`. This runs the Alembic
+migration; construction alone does not create tables. Give the journal a durable
+local path. `reconcile_pending()` restores retained completion evidence after a
+write failure; uncertain started operations are never automatically replayed.
+`pending_outbox()` and `ack_outbox(event_id)` support later idempotent delivery.
+
+`model_router.service.create_app(dependencies)` provides `POST /v1/route`,
+`POST /v1/execute` and `GET /v1/tasks/{task_id}`. Route requires supplied
+classification. POST bodies contain `request` and `classification`; execute may
+omit classification and may additionally specify `idempotency_key`. Authorization,
+tool scope, snapshots and budgets come from trusted server dependencies. The HTTP
+handlers contain no routing or retry policy. This is local composition, without
+production deployment authentication.
+
+Successful execute returns output in memory/the immediate HTTP response. Ordinary
+serialization, task retrieval, duplicate replay after restart, database rows and
+journal entries retain metadata only. A duplicate returns the original task ID and
+status without dispatching again; it cannot recover deliberately unretained output.
+Required V1/V2/V3 remains blocked. Raw prompt/output capture and all live execution
+remain disabled. Full operational limits, live classifier admission, current-tariff
+refresh, authentication, cross-process reservations and journal locking remain
+production hardening prerequisites.

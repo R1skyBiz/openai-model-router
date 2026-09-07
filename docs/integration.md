@@ -1,8 +1,8 @@
 # Integration v1
 
 Status: Embedded route-only API and Phase 2 classifier / single-invocation
-provider adapters are implemented. HTTP endpoints and task execution remain
-planned. See [Phase 2 report](phase-2-report.md).
+provider adapters are implemented. Phase 3 supplies bounded offline execution
+and the route/execute/task HTTP adapters. See [Phase 3 report](phase-3-report.md).
 
 ## Shared engine and boundaries
 
@@ -107,3 +107,18 @@ Backend analytics implement [telemetry.md](telemetry.md); the dashboard renders
 returned definitions and denominators. Integration hardening verifies version
 rollout/rollback, persistence recovery, privacy, permission boundaries, budget
 concurrency, compatibility and the production eval gate.
+
+## Phase 3 concrete API
+
+`model_router.execution.execute(request, dependencies, *, supplied_classification=None)`
+returns the normalized TaskResult. `ExecutionDependencies` is explicit and contains
+no hidden global composition. The frozen contract and state transitions are in
+[Phase 3 interfaces](phase-3-interfaces.md). `service.create_app(dependencies)` is
+a thin synchronous FastAPI adapter. Route-only currently requires supplied
+classification; it never invokes a classifier/provider/tool/validator.
+
+All execute inputs are normalized Request records (task/trace IDs required).
+The HTTP envelope has `request`, optional `classification` for execution, and
+optional `idempotency_key`; callers cannot replace trusted execution controls.
+Task retrieval is metadata-only. Application authentication remains a deployment
+gate; this local service must not be exposed as an authenticated production API.

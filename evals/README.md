@@ -325,3 +325,29 @@ transport parity and full identifier correlation need later integration tests.
    `Observation.model_json_schema()`. For a policy change, retain history, review
    envelopes and explicitly repin a new manifest; never rewrite expectations
    automatically from policy values.
+
+## Phase 3 real recovery execution
+
+```bash
+uv run --offline python evals/run_phase3.py --report evals/results/phase3-report.json \
+  --results evals/results/phase3-observations.jsonl
+uv run --offline python evals/run_local.py --results evals/results/phase3-observations.jsonl --allow-subset
+```
+
+This combined runner grades 142 route cases, 19 classification seeds and 17
+recovery scenarios: **178/178 applicable, out of 179 authored cases**. Recovery
+uses real execute(), MockProvider, deterministic validation/tools, injected health,
+budget and clock, and SQLite persistence. Expectations are never read by the
+adapter. The unchanged grader consumes resulting observations.
+
+`evaluator_infrastructure` remains explicitly deferred: its V1 evaluator timeout
+and retry require Phase 4 evaluator execution. A separate real execute() gate
+check verifies that it blocks with zero generation calls. It is never reported
+as a passing recovery trace. This honors the prohibition on Phase 4 work.
+
+The authored outage-fallback and alternate-tool scenarios stop at the recovery
+choice. The runner also executes the selected follow-on mock action to completion,
+retains its full task history, and projects the authored event horizon for the
+strict trace grader. Facts expose both that horizon and total recorded actions;
+tests verify the actual fallback model and alternate tool dispatches. The corpus,
+expected traces, schemas, fixtures and independent grader remain unchanged.

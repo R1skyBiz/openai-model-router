@@ -8,7 +8,7 @@ import json
 
 from model_router.core.configuration import PolicyBundle
 from model_router.core.contracts import (
-    Classification, ConfigurationError, EnvironmentSnapshot, FailureType,
+    Candidate, Classification, ConfigurationError, EnvironmentSnapshot, FailureType,
     Feasibility, InputError, Request, RouteDecision, RouteRejection,
 )
 from model_router.policy.budgets import check_budget, resolve_limits
@@ -28,7 +28,8 @@ def _digest(value):
 
 
 def route(request: Request, classification: Classification,
-          environment_snapshot: EnvironmentSnapshot, policy_bundle: PolicyBundle
+          environment_snapshot: EnvironmentSnapshot, policy_bundle: PolicyBundle,
+          *, recovery_candidates: tuple[Candidate, ...] | None = None
           ) -> RouteDecision | RouteRejection:
     """Select using supplied facts and immutable snapshots, never execute.
 
@@ -54,6 +55,15 @@ def route(request: Request, classification: Classification,
 
     limits = resolve_limits(request, env, bundle)
     plan = build_candidates(classification, bundle, limits)
+    if recovery_candidates is not None:
+        if not recovery_candidates:
+            raise InputError("recovery candidates cannot be empty")
+        if any(c.model not in catalog["models"] or c.effort not in catalog["models"][c.model]["reasoning_efforts"]
+               for c in recovery_candidates):
+            raise InputError("unsupported recovery candidate")
+        existing = {(c.model, c.effort) for c in plan.candidates}
+        extras = tuple(c for c in recovery_candidates if (c.model, c.effort) not in existing)
+        plan = plan.model_copy(update={"candidates": (*plan.candidates, *extras)})
     validation = determine_validation(request, env, bundle)
     codes = list(plan.rationale_codes)
     # There is no approved operational confidence cutoff. Record non-certainty
@@ -70,6 +80,8 @@ def route(request: Request, classification: Classification,
                            sha256(request.input.encode()).hexdigest(),
                            classification.model_dump(mode="json"),
                            env.model_dump(mode="json"), config_hash])
+    if recovery_candidates is not None:
+        decision_id = _digest([decision_id, [c.model_dump(mode="json") for c in recovery_candidates]])
     details = {
         "required_capabilities": request.requirements,
         "matched_rules": plan.matched_rules,
@@ -238,9 +250,25 @@ def route(request: Request, classification: Classification,
         if not blocked:
             raise ConfigurationError("preferred floor cannot be waived without blocking evidence")
 
+    if recovery_candidates is not None:
+        ordered = []
+        for wanted in recovery_candidates:
+            ordered.extend(item for item in feasible if
+                           (item[0].model, item[0].effort) == (wanted.model, wanted.effort))
+        if not ordered:
+            wanted_pairs = {(c.model, c.effort.value) for c in recovery_candidates}
+            violations = tuple(v for row in removed if (row["model"], row["effort"]) in wanted_pairs
+                               for v in row["constraints"])
+            if set(violations) & {"remaining_budget", "task_cost_ceiling_usd", "model_tier_ceiling"}:
+                return reject(FailureType.BUDGET_FAILURE, violations)
+            return reject(FailureType.PROVIDER_FAILURE if "no_healthy_permitted_path" in violations
+                          else FailureType.CAPABILITY_FAILURE,
+                          violations or ("recovery_candidate_not_permitted",), retryable=True)
+        feasible = ordered
+
     # Non-prior traversal is a last resort. Degraded-but-usable prior candidates
     # may remain usable; prefer a healthy candidate within that same group.
-    primary = [item for item in feasible if item[0].source != "fallback"]
+    primary = [] if recovery_candidates is not None else [item for item in feasible if item[0].source != "fallback"]
     pool = primary or feasible
     healthy = [item for item in pool if item[3] is not None and item[3].state == "HEALTHY"]
     candidate, cost, budget, health = (healthy or pool)[0]

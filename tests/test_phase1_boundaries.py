@@ -24,6 +24,11 @@ def test_runtime_source_has_no_forbidden_boundary_imports():
             # Phase 2 adds exactly one external adapter. The pure routing core,
             # policy and classifier still have the original import restriction.
             allowed = {"openai"} if path == ROOT / "src/model_router/execution/openai_provider.py" else set()
+            # Phase 3 adapters own their frameworks; core and orchestration do not.
+            if path.is_relative_to(ROOT / "src/model_router/storage"):
+                allowed |= {"sqlalchemy", "alembic"}
+            if path.is_relative_to(ROOT / "src/model_router/service"):
+                allowed |= {"fastapi"}
             assert not any(name.split(".")[0] in FORBIDDEN - allowed for name in imports), path
 
 
