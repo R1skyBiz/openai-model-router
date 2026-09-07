@@ -154,8 +154,10 @@ Fresh editable Python installation is also tested without any dashboard director
 a build hook reserves generated assets for standard release wheels. This closes
 the missing-frontend-assets failure exposed by the first clean CI checkout.
 Artifacts live in `dist/`; `SHA256SUMS` records final local digests. Docker is not
-installed locally, so container verification is delegated to the explicit CI
-image-build gate and is not claimed from the local package smoke.
+installed locally. The [clean-checkout CI run](https://github.com/R1skyBiz/openai-model-router/actions/runs/34132794017) passed all gates on
+`ddba808c19fc8c41767811225c41b9c0eef3af9b`, including the full verification
+suite, PostgreSQL 16 integration/migrations and the authenticated container build.
+No wheel, source distribution or image was uploaded or publicly published.
 
 The local verification command also includes configuration/skill/secret checks,
 immutable policy/oracle diff, backend tests, each phase runner, load harness,
@@ -165,3 +167,7 @@ files found no candidate API credentials or private keys. No public release is
 created. See [deployment](deployment.md)
 for build, local demo, migrations, activation, startup and rollback commands, and
 [integration](integration.md) for the application/operator/policy-engineer contract.
+
+Two final local builds produced byte-identical wheel and source distributions.
+The local PostgreSQL 18.4 test server was stopped after successful verification.
+The remaining release blocker is live account/model/pricing/canary verification.

@@ -109,6 +109,12 @@ and all routing values. The approved four `config/*.yaml` documents remain draft
 and unchanged. A production composition must reference new active versions with
 finite limits; never relabel or mutate historical snapshots in place.
 
+The release CLI accepts no caller-supplied configuration overlay. Trusted
+application budget settings come from the referenced bundle and must agree with
+the release operational envelope. Embedded integrations can inject a versioned
+`application_overlay` and matching `application_overlay_version` in their trusted
+environment snapshot; clients cannot provide those environment facts through HTTP.
+
 For a policy change: copy/version the affected bundle, record the decision in an
 ADR, validate references and operational limits, run all independent evals and
 regressions, inspect cost/quality envelopes, review the diff, and explicitly

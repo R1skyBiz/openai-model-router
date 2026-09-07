@@ -18,7 +18,7 @@ remains off regardless of credential presence.
 Live verification has not run: no account access result, paid classifier result
 or end-to-end result, and $0 spent. Standard text/V0 is the only candidate live
 surface. No live tools, semantic evaluators, shadows or probe scheduler are exposed.
-Docker is unavailable locally; CI has a dedicated image-build gate. The verified
+Docker is unavailable locally; the [CI image-build gate](https://github.com/R1skyBiz/openai-model-router/actions/runs/34132794017) passed. The verified
 operating envelope is deliberately small and does not certify multi-host journals
 or large-scale analytics.
 

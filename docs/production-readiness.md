@@ -22,7 +22,7 @@ A local package is a candidate artifact, not evidence of production certificatio
 | Backup/recovery | READY WITH LIMITATION | Restart/reconciliation and migration history tests; coordinated operator backups required; reconcile post-backup spend before resuming |
 | Live model access | BLOCKED | No account credential or model-access probe; Luna/Terra/Sol/Astra unverified for this account |
 | Live pricing | BLOCKED | Official public sources reviewed; no activated account-verified catalog/canary evidence; historic snapshots unchanged |
-| Deployment | READY WITH LIMITATION | Locked Python/frontend packaging and explicit migration/preflight/activation/startup; container execution subject to tool availability |
+| Deployment | READY WITH LIMITATION | Locked package/clean-install smoke and CI container build pass; single-process startup; operator TLS and durable volumes required |
 | Privacy | READY | Raw content defaults off; normalized task/journal/outbox only; SDK diagnostics suppressed; sanitized auth/service/CLI failures |
 | Operating limits | READY WITH LIMITATION | Eight concurrent local mock actions, 1,000-task analytics run; no multi-host journal, large-scale claim or soak-test certification |
 

@@ -92,8 +92,8 @@ process service. Mount the activation receipt at
 `/var/lib/model-router`; inject credentials and the database URL at runtime.
 Publish port 8000 on loopback for local operation.
 
-Docker was unavailable in the Phase 6 development environment, so the image
-build remains an explicit release blocker until CI or an operator runs:
+Docker was unavailable locally. The [release CI run](https://github.com/R1skyBiz/openai-model-router/actions/runs/34132794017) successfully
+built the image from a clean checkout. To reproduce and run it locally:
 
 ```bash
 docker build --pull --tag openai-model-router:v0.1.0-rc1 .
