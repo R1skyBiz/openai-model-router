@@ -12,7 +12,7 @@ FROM python:3.12-slim-bookworm AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /opt/model-router
 COPY --from=uv /uv /usr/local/bin/uv
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md hatch_build.py ./
 COPY src/ src/
 COPY migrations/ migrations/
 COPY config/ config/

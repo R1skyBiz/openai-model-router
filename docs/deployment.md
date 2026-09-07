@@ -24,6 +24,9 @@ uv run --frozen --offline python scripts/verify_release.py \
   --skip-frontend-install --offline --uv uv
 ```
 
+Editable Python installation works without built dashboard assets. The release
+build compiles those assets before building a standard wheel.
+
 The wheel contains the compiled dashboard at `model_router/dashboard` and all
 Alembic revisions at `model_router/storage/alembic`. The source distribution
 also contains the HTTP client example, tests, evals, configuration, dashboard

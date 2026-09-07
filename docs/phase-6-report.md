@@ -150,6 +150,9 @@ Both wheel and sdist build successfully with pinned Hatchling, locked Python and
 frontend dependencies and deterministic build timestamp. The wheel contains
 compiled dashboard assets and Alembic revisions. It was installed outside the
 checkout and its packaged migrations passed downgrade/base → upgrade smoke.
+Fresh editable Python installation is also tested without any dashboard directory;
+a build hook reserves generated assets for standard release wheels. This closes
+the missing-frontend-assets failure exposed by the first clean CI checkout.
 Artifacts live in `dist/`; `SHA256SUMS` records final local digests. Docker is not
 installed locally, so container verification is delegated to the explicit CI
 image-build gate and is not claimed from the local package smoke.

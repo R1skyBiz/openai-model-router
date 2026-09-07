@@ -33,11 +33,15 @@ postgres = [
 packages = ["src/model_router"]
 force-include = { "migrations" = "model_router/storage/alembic", "dashboard/dist" = "model_router/dashboard" }
 
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
 [tool.hatch.build.targets.sdist]
 include = [
   "/.dockerignore",
   "/.github/workflows/release-ci.yml",
   "/Dockerfile",
+  "/hatch_build.py",
   "/README.md",
   "/config",
   "/dashboard",

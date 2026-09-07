@@ -6,6 +6,7 @@ import argparse
 from email.parser import BytesParser
 from email.policy import default
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -56,6 +57,7 @@ def verify_archives(directory: Path) -> tuple[Path, Path]:
     with tarfile.open(sdist, "r:gz") as archive:
         names = set(archive.getnames())
         assert any(name.endswith("/examples/http_client.py") for name in names)
+        assert any(name.endswith("/hatch_build.py") for name in names)
         assert any(name.endswith("/dashboard/dist/index.html") for name in names)
         assert any(name.endswith("/migrations/versions/0003_phase6_durable_storage.py") for name in names)
         assert not any("node_modules/" in name or "__pycache__" in name for name in names)
@@ -142,6 +144,21 @@ def validate_source() -> None:
         )
 
 
+def verify_clean_editable(uv: str, *, offline: bool) -> None:
+    """Exercise fresh Python setup with no generated frontend directory."""
+    with tempfile.TemporaryDirectory(prefix='model-router-clean-') as raw:
+        checkout = Path(raw)
+        for name in ('pyproject.toml', 'uv.lock', 'README.md', 'hatch_build.py'):
+            shutil.copy2(ROOT / name, checkout / name)
+        for name in ('src', 'migrations'):
+            shutil.copytree(ROOT / name, checkout / name, ignore=shutil.ignore_patterns('__pycache__'))
+        assert not (checkout / 'dashboard').exists()
+        _run([uv, 'sync', '--locked', '--no-dev', '--python', sys.executable,
+            *(['--offline'] if offline else [])], cwd=checkout)
+        _run([str(checkout / '.venv' / 'bin' / 'python'), '-I', '-c',
+            'from model_router.service import create_app; from model_router.release.cli import main'], cwd=checkout)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dist", type=Path, default=ROOT / "dist")
@@ -219,6 +236,7 @@ def main() -> int:
 
     wheel, _sdist = verify_archives(args.dist)
     verify_installed_wheel(wheel, args.uv, offline=args.offline)
+    verify_clean_editable(args.uv, offline=args.offline)
     print(f"verified {wheel.name} and installed-wheel migration smoke", flush=True)
     return 0
 
