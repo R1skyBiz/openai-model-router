@@ -40,7 +40,12 @@ def _print(value) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    import sys
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] == "calibrate":
+        from model_router.calibration.cli import main as calibrate
+        return calibrate(arguments[1:])
+    args = _parser().parse_args(arguments)
     try:
         release = load_release(args.manifest)
         if args.command == "inspect":

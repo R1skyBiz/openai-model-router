@@ -228,3 +228,12 @@ Paid classifier-only previews are available through the separately authenticated
 for the LEO example, dedicated token scope, finite allocations, idempotency and
 operator activation. `/v1/route` remains free and requires supplied classification;
 `/v1/execute` retains its existing contract.
+
+## Calibration Lab
+
+The isolated v0.2 Phase 1 [Calibration Lab](docs/calibration-lab.md) compares Router,
+Terra/medium and Sol/medium with blind grading and separate experiment accounting.
+Use the offline 24-case sample to exercise the harness; it is not benchmark evidence.
+Live runs require a separately reviewed configuration, explicit opt-in and finite cap.
+The [Phase 1 implementation report](docs/calibration-phase-1-report.md) records
+verification, review fixes, scope limits and the real-corpus intake next steps.

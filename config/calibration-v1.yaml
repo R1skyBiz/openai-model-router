@@ -1,0 +1,39 @@
+schema_version: 1
+version: calibration-lab-sample-v1
+# Laboratory settings only. Does not activate or alter Router policy.
+strategies:
+  - {name: ROUTER, kind: router, recovery_enabled: false}
+  - {name: TERRA_BASELINE, kind: fixed, model: terra, effort: medium}
+  - {name: SOL_BASELINE, kind: fixed, model: sol, effort: medium}
+seed: 20260908
+min_cohort_size: 30
+aggregate_cap_usd: '25'
+max_input_tokens: 8192
+max_output_tokens: 1024
+input_overhead_tokens: 1024
+max_generation_attempts: 3
+deadline_ms: 30000
+production_validation: V0
+material_cost_ratio: '1.1'
+evaluator:
+  model: sol
+  effort: medium
+  max_input_tokens: 16384
+  max_output_tokens: 512
+  timeout_ms: 30000
+  retries: 1
+adjudicator: null
+adjudication_sample_rate: '0'
+max_adjudications: 0
+policy_directory: config
+classifier_path: config/classifier.yaml
+release_manifest: null
+live_enabled: false
+# Raw-content handling and review retention are separate from Router telemetry.
+privacy_policy_version: calibration-privacy-v1
+allowed_privacy: [public]
+capture_review_outputs: false
+# Live operators must name and allocate a durable experiment budget explicitly.
+allocation_id: null
+allocation_cap_usd: null
+allocation_directory: null

@@ -14,6 +14,7 @@ def offline_by_default(request, monkeypatch):
         return
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("RUN_LIVE_OPENAI_TESTS", raising=False)
+    monkeypatch.delenv("RUN_LIVE_CALIBRATION", raising=False)
 
     def forbidden(*args, **kwargs):
         raise AssertionError("network access is forbidden in default tests")

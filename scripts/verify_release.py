@@ -54,6 +54,9 @@ def verify_archives(directory: Path) -> tuple[Path, Path]:
         assert any(name.endswith("0004_routing_previews.py") for name in names)
         assert "model_router/execution/preview.py" in names
         assert "model_router/storage/previews.py" in names
+        assert "model_router/calibration/runner.py" in names
+        assert "model_router/calibration/cli.py" in names
+        assert "model_router/calibration/budget.py" in names
         assert "model_router/dashboard/index.html" in names
         assert any(name.startswith("model_router/dashboard/assets/") for name in names)
         assert not any("__pycache__" in name or name.endswith(".pyc") for name in names)
@@ -65,6 +68,8 @@ def verify_archives(directory: Path) -> tuple[Path, Path]:
         assert any(name.endswith("/migrations/versions/0003_phase6_durable_storage.py") for name in names)
         assert any(name.endswith("/config/releases/leo-shadow-v1.yaml") for name in names)
         assert any(name.endswith("/scripts/compose_leo_preview.py") for name in names)
+        assert any(name.endswith("/calibration/sample/corpus-v1.jsonl") for name in names)
+        assert any(name.endswith("/calibration/sample/mock-v1.json") for name in names)
         assert not any("node_modules/" in name or "__pycache__" in name for name in names)
     return wheel, sdist
 
@@ -105,6 +110,9 @@ from sqlalchemy import create_engine, inspect
 assert 'routing_previews' in inspect(create_engine(url)).get_table_names()
 from model_router.execution.preview import classify_route
 from model_router.storage.previews import SQLPreviewRepository
+from model_router.calibration.runner import CalibrationRunner
+from model_router.calibration.budget import CalibrationAllocation
+from model_router.calibration.cli import main as calibration_main
 from model_router.release.cli import main
 assert callable(main)
 """

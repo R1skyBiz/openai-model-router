@@ -16,3 +16,14 @@ evals/results/*
 .env.*
 model-router.db*
 model-router-pending.jsonl
+# Calibration private inputs and generated evidence never enter build contexts.
+.calibration
+calibration/private
+calibration/internal
+calibration/sensitive
+calibration/restricted
+calibration/generated
+calibration/runs
+calibration/outputs
+**/calibration-private
+**/*.private.jsonl

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "corpus_version": "sample-v1",
+  "corpus_sha256": "52053408c6a3a055e88062d09d2192b8b70f68b7b993c2f5d12b7fb8f80f3d3f",
+  "case_count": 24,
+  "privacy": "public",
+  "description": "Public synthetic and authored cases for exercising the Calibration Lab harness; not a representative calibration dataset."
+}

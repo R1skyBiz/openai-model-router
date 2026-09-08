@@ -26,6 +26,15 @@ htmlcov/
 evals/results/*
 !evals/results/.gitkeep
 
+# Private calibration inputs and generated experiment evidence
+/.calibration/
+/calibration/private/
+/calibration/internal/
+/calibration/sensitive/
+/calibration/restricted/
+/calibration/generated/
+/calibration/runs/
+
 # Local execution evidence (never source artifacts)
 /model-router.db*
 /model-router-pending.jsonl

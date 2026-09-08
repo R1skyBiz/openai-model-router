@@ -32,6 +32,14 @@ postgres = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/model_router"]
 force-include = { "migrations" = "model_router/storage/alembic", "dashboard/dist" = "model_router/dashboard" }
+exclude = [
+  "/calibration/private/**",
+  "/calibration/internal/**",
+  "/calibration/sensitive/**",
+  "/calibration/restricted/**",
+  "/calibration/generated/**",
+  "/calibration/runs/**",
+]
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
@@ -44,6 +52,7 @@ include = [
   "/hatch_build.py",
   "/README.md",
   "/config",
+  "/calibration/sample",
   "/dashboard",
   "/docs",
   "/evals",
@@ -57,6 +66,14 @@ include = [
   "/uv.lock",
 ]
 force-include = { "dashboard/dist" = "dashboard/dist" }
+exclude = [
+  "/calibration/private/**",
+  "/calibration/internal/**",
+  "/calibration/sensitive/**",
+  "/calibration/restricted/**",
+  "/calibration/generated/**",
+  "/calibration/runs/**",
+]
 
 [tool.pytest.ini_options]
 addopts = "-q"

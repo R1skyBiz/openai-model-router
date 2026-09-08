@@ -1,0 +1,51 @@
+{
+  "outputs": {
+    "synthetic-arithmetic-001": "391",
+    "synthetic-arithmetic-002": "420",
+    "synthetic-transform-001": "model routing, done right!",
+    "synthetic-transform-002": "apple, banana, orange, pear",
+    "synthetic-extraction-001": "{\"order_id\":\"ZX-204\",\"item_count\":7}",
+    "synthetic-extraction-002": "{\"airports\":[\"BOS\",\"ORD\",\"SFO\"]}",
+    "synthetic-classification-001": "BILLING",
+    "synthetic-classification-002": "NEUTRAL",
+    "synthetic-logic-001": "VALID",
+    "synthetic-logic-002": "Cy",
+    "synthetic-schema-001": "{\"red\":12,\"green\":34,\"blue\":56}",
+    "synthetic-fields-001": "{\"action\":\"archive\",\"target\":\"report-17\"}",
+    "authored-email-001": "Yes, Thursday at 2 PM Eastern works for me. I look forward to reviewing the launch checklist.",
+    "authored-summary-001": "A configuration error caused elevated API errors, so engineers rolled back the change; error rates returned to normal and monitoring continues.",
+    "authored-planning-001": "{\"steps\":[{\"action\":\"Enable the cache for 10 percent of traffic.\",\"rollback_trigger\":\"Rollback if error rate exceeds 1 percent.\"},{\"action\":\"Increase the cache to 50 percent after healthy monitoring.\",\"rollback_trigger\":\"Rollback if p95 latency rises by more than 10 percent.\"},{\"action\":\"Increase the cache to 100 percent after the second healthy window.\",\"rollback_trigger\":\"Rollback if cache correctness checks fail.\"}]}",
+    "authored-code-001": "def clamp(value, lower, upper):\n    if lower > upper:\n        raise ValueError('lower must not exceed upper')\n    return min(max(value, lower), upper)",
+    "authored-code-002": "function uniqueSorted(values) {\n  return [...new Set(values)].sort((a, b) => a - b);\n}",
+    "authored-sql-001": "SELECT customer_id, SUM(amount) AS total_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY customer_id\nHAVING SUM(amount) > 100\nORDER BY total_amount DESC;",
+    "authored-debug-001": "ValueError",
+    "authored-policy-001": "NOT_ALLOWED",
+    "authored-data-001": "100",
+    "authored-json-001": "{\"status\":\"degraded\",\"replicas_ready\":4,\"replicas_total\":5}",
+    "authored-risk-001": "{\"risks\":[\"The vendor API quota may delay imports.\",\"Incomplete address data may reduce match rates.\"]}",
+    "authored-instruction-001": "CANARY"
+  },
+  "classification": {
+    "task_family": "transform",
+    "task_subclass": null,
+    "components": {
+      "reasoning_depth": 0,
+      "step_dependency": 0,
+      "context_synthesis": 0,
+      "technical_precision": 0,
+      "ambiguity": 0,
+      "tool_orchestration": 0,
+      "reliability_requirement": 0
+    },
+    "confidence": 1.0,
+    "flags": {
+      "consequential_multi_system": false,
+      "exceptional_end_to_end": false,
+      "long_horizon": false,
+      "multivariable": false,
+      "repository_wide": false,
+      "substantive_implementation": false
+    }
+  },
+  "semantic_score": 0.95
+}
