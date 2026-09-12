@@ -204,6 +204,7 @@ def main() -> int:
                 "config/validation.yaml",
                 "evals/cases",
                 "evals/fixtures",
+                ":(exclude)evals/fixtures/manifest.json",
                 "evals/grader.py",
                 "evals/schema.py",
                 "evals/schema",
