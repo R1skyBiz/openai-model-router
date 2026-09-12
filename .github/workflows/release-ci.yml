@@ -46,6 +46,9 @@ jobs:
       - name: Install locked dashboard dependencies
         working-directory: dashboard
         run: npm ci
+      - name: Build dashboard assets for archive privacy verification
+        working-directory: dashboard
+        run: npm run build
       - name: Run CI-equivalent verification and package smoke
         run: uv run --frozen python scripts/verify_release.py --skip-frontend-install --uv uv
       - name: Run PostgreSQL concurrency integration tests
