@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import ast
+import os
 from pathlib import Path
+import shutil
 import tomllib
 
 import yaml
 
-from scripts.verify_release import VERSION, validate_source
+from scripts.verify_release import (
+    VERSION, validate_source, verify_clean_editable,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,3 +48,9 @@ def test_build_verify_docker_and_workflow_files_are_parseable():
 
 def test_source_configuration_and_skill_metadata_validate():
     validate_source()
+
+
+def test_fresh_editable_install_without_dashboard_assets():
+    uv = os.environ.get('MODEL_ROUTER_UV') or shutil.which('uv')
+    assert uv is not None, 'uv is required for the editable package smoke test'
+    verify_clean_editable(uv, offline=True)

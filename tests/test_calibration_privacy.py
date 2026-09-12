@@ -23,7 +23,8 @@ PRIVATE_PREFIXES = (
     "calibration/generated/",
     "calibration/runs/",
 )
-ARCHIVE_PRIVATE_PREFIXES = (*PRIVATE_PREFIXES, ".calibration/")
+INTAKE_PRIVATE_PREFIXES = ("private-intake/", "chatgpt-exports/", "source-intake/")
+ARCHIVE_PRIVATE_PREFIXES = (*PRIVATE_PREFIXES, *INTAKE_PRIVATE_PREFIXES, ".calibration/")
 
 
 def test_persisted_snapshot_contains_hashes_but_no_raw_content_or_secrets(tmp_path: Path):
@@ -88,6 +89,11 @@ def test_build_configuration_explicitly_excludes_private_calibration_trees():
     docker_ignored = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     assert "/.calibration/" in ignored
     assert ".calibration" in docker_ignored
+    for prefix in INTAKE_PRIVATE_PREFIXES:
+        assert f"/{prefix}" in ignored
+        assert prefix.rstrip("/") in docker_ignored
+    assert "/conversations.json" in ignored
+    assert "conversations.json" in docker_ignored
     for prefix in PRIVATE_PREFIXES:
         pattern = f'"/{prefix}**"'
         assert configuration.count(pattern) == 2
@@ -113,6 +119,7 @@ def test_actual_source_archive_has_no_private_calibration_content(tmp_path: Path
         directory = checkout / prefix
         directory.mkdir(parents=True, exist_ok=True)
         (directory / "private-case.jsonl").write_text(sentinel, encoding="utf-8")
+    (checkout / "conversations.json").write_text(sentinel, encoding="utf-8")
     artifacts = tmp_path / "artifacts"
     environment = os.environ.copy()
     environment.setdefault("UV_CACHE_DIR", "/private/tmp/openai-model-router-uv-cache")

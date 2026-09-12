@@ -31,7 +31,7 @@ draft v1 data with explicit verification gaps and disabled live execution.
 ## Setup
 
 ```bash
-uv sync --extra dev
+uv sync --locked --extra dev
 ```
 
 Copy the environment template only when you need local provider access:
@@ -42,6 +42,23 @@ cp .env.example .env
 
 Default tests and all phase eval runners require no OpenAI API key or network.
 Install dependencies once; use `uv run --offline` for subsequent verification.
+
+Editable installs should import the package and run `uv run model-router --help`
+without `PYTHONPATH`. On macOS, external filesystem metadata changes in synced
+folders can mark the editable-install `.pth` file `UF_HIDDEN`, causing Python to
+skip it. Check `uv run python -v -c "import model_router"` for
+`Skipping hidden .pth file` and inspect flags with
+`ls -lO .venv/lib/python*/site-packages/*.pth`. If the flags recur, create a fresh
+environment outside the synced workspace and keep using that location:
+
+```bash
+export UV_PROJECT_ENVIRONMENT="$HOME/Library/Caches/model-router/venv"
+uv sync --locked --extra dev
+```
+
+The clean-install smoke test verifies package imports, migrations, and the CLI in
+a temporary environment without dashboard build assets. External filesystem flag
+behavior is an environment troubleshooting concern, not a release requirement.
 
 ## Local telemetry dashboard
 
@@ -237,3 +254,11 @@ Use the offline 24-case sample to exercise the harness; it is not benchmark evid
 Live runs require a separately reviewed configuration, explicit opt-in and finite cap.
 The [Phase 1 implementation report](docs/calibration-phase-1-report.md) records
 verification, review fixes, scope limits and the real-corpus intake next steps.
+
+### Application integration
+
+Use the asynchronous `model_router.client.RouterClient` for typed previews,
+explicit routed execution and health checks. It defaults to preview-only shadow
+mode. See the [integration guide](docs/integrations/leo-integration-readiness.md),
+[FastAPI example](examples/fastapi_integration.py), and
+[handoff](docs/integrations/leo-integration-handoff.md).

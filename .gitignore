@@ -35,6 +35,12 @@ evals/results/*
 /calibration/generated/
 /calibration/runs/
 
+# Defense in depth: raw exports and private intake stay outside every worktree
+/private-intake/
+/chatgpt-exports/
+/source-intake/
+/conversations.json
+
 # Local execution evidence (never source artifacts)
 /model-router.db*
 /model-router-pending.jsonl
