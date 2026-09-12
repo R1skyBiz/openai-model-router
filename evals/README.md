@@ -6,7 +6,7 @@ before a router existed. The independent offline grader evaluates supplied
 observations; it does not route requests, call providers, classify text, run
 validators or execute recovery. No API key or network is required.
 
-The approved architecture is pinned at `f3e8c70`. See
+The approved architecture is pinned at `ddbad40`. See
 [ADR 0009](../docs/decisions/0009-pre-phase-1-evaluation-contract.md) for the phase
 boundary and [coverage and audit](coverage.md) for the reviewed distribution.
 The four approved policy YAML files and authored expectations remain unchanged.

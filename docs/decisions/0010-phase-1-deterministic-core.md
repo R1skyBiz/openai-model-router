@@ -4,7 +4,7 @@ Status: Accepted for Phase 1 implementation
 
 ## Context
 
-The architecture at `f3e8c70` and independent evaluation contract at `f42ecc9`
+The architecture at `ddbad40` and independent evaluation contract at `282e81d`
 precede runtime implementation. Phase 1 is now explicitly authorized. It supplies
 typed routing and configuration, with no provider, classifier, execution,
 recovery, persistence, transport, or health-probe implementation.
@@ -85,7 +85,7 @@ requests remain blocked until execution authorization exists in a later phase.
 
 All configured model/provider IDs, prices, effort support, numerical policy
 values, and capabilities stay in YAML. The authored oracle remains byte-identical
-to `f42ecc9`. The adapter derives observations from runtime evidence and lists
+to `282e81d`. The adapter derives observations from runtime evidence and lists
 every unsupported classification/recovery case with its reason.
 
 The adapter's content-exclusion facts describe its actual allowlisted projection;

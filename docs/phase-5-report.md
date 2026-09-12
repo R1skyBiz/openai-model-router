@@ -1,7 +1,7 @@
 # Phase 5 — Telemetry analytics and dashboard
 
 Implemented against the approved Phase 4 baseline
-`fdb569b41724d55d1562110a7bbf92cbcae660e7`. Production execution remains disabled.
+`3534dca65542b56e94a5273837e78cb5288deaa8`. Production execution remains disabled.
 Phase 6, adaptive routing, autonomous policy changes, and public deployment have
 not begun. Verification date: September 7, 2026 UTC.
 

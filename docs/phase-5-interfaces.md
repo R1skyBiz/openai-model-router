@@ -2,7 +2,7 @@
 
 Frozen before worker delegation. Phase 5 adds read-only local analytics and a
 React/TypeScript dashboard. Production execution stays disabled. The baseline
-is `fdb569b41724d55d1562110a7bbf92cbcae660e7`; approved policy/oracle stay unchanged.
+is `3534dca65542b56e94a5273837e78cb5288deaa8`; approved policy/oracle stay unchanged.
 
 ## Integration plan and ownership
 

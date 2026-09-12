@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "release_status": "LIVE-VERIFIED v0.1.0-rc1",
-  "baseline": "1d8b94926dde2d3aa71dc01eb49686fa6ac0f13e",
+  "baseline": "27c295092cf8feca56093cf8d6fcc0b1fbd6a60b",
   "verified_at": "2026-09-07T21:30:28.712709+00:00",
   "credential": {
     "kind": "new dedicated Model Router key",

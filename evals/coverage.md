@@ -1,6 +1,6 @@
 # Coverage and corpus audit
 
-Reviewed 2026-09-06 against architecture f3e8c70. This is an offline contract audit, not a router benchmark.
+Reviewed 2026-09-06 against architecture ddbad40. This is an offline contract audit, not a router benchmark.
 
 Total: **179 cases**. **131 explicitly forbid Astra**. Historical regressions remain empty.
 

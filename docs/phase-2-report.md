@@ -8,9 +8,9 @@ live evaluation settings remain disabled; no paid canary or classifier eval ran.
 
 Approved baselines:
 
-- Architecture: `f3e8c70bdb10ef76ca81289cea5ebe26368f291d`.
-- Independent oracle: `f42ecc9615de547528de7cbc00a2624649140f57`.
-- Phase 1: `971f08386bf23ae9370bc51c1851a4162e9e86d7`.
+- Architecture: `ddbad40b19c841a6a1e8db8524c98f15158ec53b`.
+- Independent oracle: `282e81d06c81273c10b39f4aabb9b88fdd7d701d`.
+- Phase 1: `758d5eb788ca5dd9793e63ffb8c75f5a89d1674b`.
 
 ## Multi-agent ownership and integration
 

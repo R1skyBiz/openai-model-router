@@ -1,6 +1,6 @@
 # Calibration Lab Phase 1 frozen contracts
 
-Approved baseline: ef2cafc92c7ba8fdfe1d75029f5aa643c5312b51. Root inspected
+Approved baseline: 495cfff0855f00f0253cadc93b62352384373a37. Root inspected
 AGENTS.md, all Accepted ADRs (0001–0016), Phase 4–6 reports, evals (graders is
 currently empty), classifier/provider, validation, execution/recovery, accounting,
 SQL storage/budgets, and dashboard analytics. Initial working tree was clean.

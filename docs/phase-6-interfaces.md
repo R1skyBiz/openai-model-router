@@ -1,6 +1,6 @@
 # Phase 6 frozen release criteria and ownership
 
-Frozen before delegation on 2026-09-07 against Phase 5 `471128e1504b7e7218d6c1b297d30955824973b3`; initial working tree clean. Root read AGENTS, authoritative architecture/policy/configuration/telemetry/integration/health documents, Accepted ADRs and Phase 1–5 reports and inspected runtime/storage/service/live guards/dashboard/packaging.
+Frozen before delegation on 2026-09-07 against Phase 5 `547bcea6be4e6bc4f285a2cc3db61ce15a092ee5`; initial working tree clean. Root read AGENTS, authoritative architecture/policy/configuration/telemetry/integration/health documents, Accepted ADRs and Phase 1–5 reports and inspected runtime/storage/service/live guards/dashboard/packaging.
 
 ## Release criteria
 

@@ -1,7 +1,7 @@
 # LEO shadow routing support verification
 
 Implemented against clean live-verified baseline
-`9ab3635fc9a622a3d25f5ebb83d39f1bd46c39b6`.
+`c0b240dc133a000e606060103075180aa85c33fa`.
 
 The authenticated `POST /v1/classify-route` surface performs one admitted classifier
 invocation, exact accounting, and deterministic routing. It has a separate

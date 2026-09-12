@@ -13,7 +13,7 @@ OpenAI credential with tiny standard-text V0 canaries. Production readiness is e
 
 Root architect/integrator used Astra; workers and independent reviewers used Sol
 High as requested. Root inspected the clean Phase 5 baseline
-`471128e1504b7e7218d6c1b297d30955824973b3`, authoritative docs and production gates,
+`547bcea6be4e6bc4f285a2cc3db61ce15a092ee5`, authoritative docs and production gates,
 then froze [the gap matrix/interfaces](phase-6-interfaces.md) and
 [ADR 0015](decisions/0015-phase-6-release-boundary.md) before delegation.
 
@@ -79,7 +79,7 @@ budget ledger requires spend reconciliation before paid service resumes.
 
 ## Final live verification — 2026-09-07
 
-The final pass used baseline `1d8b94926dde2d3aa71dc01eb49686fa6ac0f13e`.
+The final pass used baseline `27c295092cf8feca56093cf8d6fcc0b1fbd6a60b`.
 After explicit credential and spend approval, a dedicated Model Router key was
 created securely and bound to private immutable account evidence. All four exact
 model IDs were retrievable; Luna `none`, Terra `none`, Sol `none`, and Astra `low`
@@ -181,7 +181,7 @@ a build hook reserves generated assets for standard release wheels. This closes
 the missing-frontend-assets failure exposed by the first clean CI checkout.
 Artifacts live in `dist/`; `SHA256SUMS` records final local digests. Docker is not
 installed locally. The [clean-checkout CI run](https://github.com/R1skyBiz/openai-model-router/actions/runs/34132794017) passed all gates on
-`ddba808c19fc8c41767811225c41b9c0eef3af9b`, including the full verification
+`94b6b77e8f94aba324850d41287828ba90ef761f`, including the full verification
 suite, PostgreSQL 16 integration/migrations and the authenticated container build.
 No wheel, source distribution or image was uploaded or publicly published.
 

@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Context
 
-The architecture at f3e8c70 is approved. The separately authorized evaluation
+The architecture at ddbad40 is approved. The separately authorized evaluation
 step must establish behavioral expectations before a routing implementation can
 influence the oracle. Architecture acceptance did not authorize runtime work.
 

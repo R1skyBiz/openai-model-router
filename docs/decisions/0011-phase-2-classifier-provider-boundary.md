@@ -4,8 +4,8 @@ Status: Accepted for the explicitly authorized Phase 2 implementation
 
 ## Context
 
-Phase 1 (`971f083`) is approved. It consumes a supplied Classification and returns
-a deterministic route or rejection. The independent oracle (`f42ecc9`) includes
+Phase 1 (`758d5eb`) is approved. It consumes a supplied Classification and returns
+a deterministic route or rejection. The independent oracle (`282e81d`) includes
 19 classification seeds and 18 recovery scenarios with separate phase gates.
 Adding an OpenAI adapter does not authorize the execution lifecycle in Phase 3.
 

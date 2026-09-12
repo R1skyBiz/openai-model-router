@@ -2,8 +2,8 @@
 
 Phase 1 implements deterministic embedded routing. Phase 2 has not begun.
 The approved policy YAML and authored evaluation oracle are unchanged from
-`f42ecc9615de547528de7cbc00a2624649140f57`; the architecture baseline is
-`f3e8c70bdb10ef76ca81289cea5ebe26368f291d`.
+`282e81d06c81273c10b39f4aabb9b88fdd7d701d`; the architecture baseline is
+`ddbad40b19c841a6a1e8db8524c98f15158ec53b`.
 
 ## Implementation and ownership
 

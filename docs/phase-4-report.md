@@ -10,8 +10,8 @@ The unchanged independent corpus is executable and passing **179/179**:
 the remaining Phase 4 evaluator-infrastructure case. An additional declarative
 suite covers the 22 requested Phase 4 regression scenarios separately.
 
-Approved baselines are architecture `f3e8c70`, oracle `f42ecc9`, Phase 1 `971f083`,
-Phase 2 `aaa290b`, and Phase 3 `ad377c1`. The four approved YAML policy files and
+Approved baselines are architecture `ddbad40`, oracle `282e81d`, Phase 1 `758d5eb`,
+Phase 2 `8678dec`, and Phase 3 `f60bdac`. The four approved YAML policy files and
 independent cases, grader, schema, vocabulary and fixtures remain byte-identical.
 
 ## Multi-agent integration

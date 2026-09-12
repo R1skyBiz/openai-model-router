@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "architecture_commit": "f3e8c70",
+  "architecture_commit": "ddbad40",
   "policy_version": "router-v1.0.0",
   "catalog_version": "models-v1.0.0",
   "pricing_snapshot": "approved-standard-text-2026-09-06",

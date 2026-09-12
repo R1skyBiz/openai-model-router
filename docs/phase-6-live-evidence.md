@@ -2,7 +2,7 @@
 
 Status: **LIVE-VERIFIED v0.1.0-rc1**. Evidence reconciliation completed at
 2026-09-07T21:30:28Z against release baseline
-`1d8b94926dde2d3aa71dc01eb49686fa6ac0f13e`.
+`27c295092cf8feca56093cf8d6fcc0b1fbd6a60b`.
 No package, GitHub release, container, or public service was published.
 
 ## Credential and spend authorization

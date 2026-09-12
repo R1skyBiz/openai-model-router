@@ -196,7 +196,7 @@ def main() -> int:
                 "git",
                 "diff",
                 "--exit-code",
-                "471128e1504b7e7218d6c1b297d30955824973b3",
+                "547bcea6be4e6bc4f285a2cc3db61ce15a092ee5",
                 "--",
                 "config/models.yaml",
                 "config/routing-policy.yaml",

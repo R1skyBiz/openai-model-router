@@ -64,7 +64,7 @@ def test_default_network_guard():
 
 def test_phase1_runtime_is_byte_identical_to_approved_baseline():
     root = Path(__file__).resolve().parents[1]
-    baseline = "971f08386bf23ae9370bc51c1851a4162e9e86d7"
+    baseline = "758d5eb788ca5dd9793e63ffb8c75f5a89d1674b"
     paths = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", baseline,
                                      "src/model_router"], cwd=root, text=True).splitlines()
     for path in paths:

@@ -1,6 +1,6 @@
 # Calibration Lab v0.2 — Phase 1 implementation report
 
-Approved starting baseline: `ef2cafc92c7ba8fdfe1d75029f5aa643c5312b51`.
+Approved starting baseline: `495cfff0855f00f0253cadc93b62352384373a37`.
 
 This phase delivers an isolated workload comparison laboratory. It does not establish
 real-world model quality or Router savings. No paid calibration was run, routing

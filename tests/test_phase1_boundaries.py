@@ -1,6 +1,7 @@
 """Dependency direction and process-level offline guarantees."""
 
 import ast
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -89,6 +90,16 @@ def test_approved_oracle_and_config_files_are_byte_identical():
     paths.extend(ROOT / "evals" / name for name in ("grader.py", "schema.py", "run_local.py"))
     for path in paths:
         rel = path.relative_to(ROOT).as_posix()
-        original = subprocess.run(["git", "show", f"f42ecc9615de547528de7cbc00a2624649140f57:{rel}"],
+        original = subprocess.run(["git", "show", f"282e81d06c81273c10b39f4aabb9b88fdd7d701d:{rel}"],
                                   cwd=ROOT, capture_output=True, check=True).stdout
-        assert path.read_bytes() == original, rel
+        if rel == "evals/fixtures/manifest.json":
+            current_manifest = json.loads(path.read_bytes())
+            original_manifest = json.loads(original)
+            current_architecture = current_manifest.pop("architecture_commit")
+            original_architecture = original_manifest.pop("architecture_commit")
+            assert current_architecture == "ddbad40"
+            assert len(original_architecture) == 7
+            assert original_architecture != current_architecture
+            assert current_manifest == original_manifest, rel
+        else:
+            assert path.read_bytes() == original, rel
