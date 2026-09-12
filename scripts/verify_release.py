@@ -161,19 +161,50 @@ def validate_source() -> None:
         )
 
 
+def verify_editable_imports(python: Path, checkout: Path, *, cwd: Path) -> None:
+    """Check the installed path in a new interpreter, without pytest/PYTHONPATH."""
+    smoke = """
+import sys
+from pathlib import Path
+import model_router
+assert model_router.__file__ is not None, 'editable install resolved as a namespace package'
+assert Path(model_router.__file__).resolve() == Path(sys.argv[1]).resolve()
+from model_router.service import create_app
+import model_router.release
+from model_router.release.cli import main
+from model_router.storage.migrations import upgrade_database, downgrade_database
+url = 'sqlite+pysqlite:///' + str(Path(sys.argv[2]) / 'editable.db')
+upgrade_database(url)
+downgrade_database(url)
+"""
+    _run([str(python), '-I', '-c', smoke,
+          str(checkout / 'src/model_router/__init__.py'), str(cwd)], cwd=cwd)
+
+
 def verify_clean_editable(uv: str, *, offline: bool) -> None:
     """Exercise fresh Python setup with no generated frontend directory."""
     with tempfile.TemporaryDirectory(prefix='model-router-clean-') as raw:
         checkout = Path(raw)
         for name in ('pyproject.toml', 'uv.lock', 'README.md', 'hatch_build.py'):
             shutil.copy2(ROOT / name, checkout / name)
-        for name in ('src', 'migrations'):
+        for name in ('src', 'migrations', 'calibration/sample'):
             shutil.copytree(ROOT / name, checkout / name, ignore=shutil.ignore_patterns('__pycache__'))
         assert not (checkout / 'dashboard').exists()
+        environment = os.environ.copy()
+        for key in ('PYTHONPATH', 'PYTHONHOME', 'UV_PROJECT_ENVIRONMENT',
+                    'VIRTUAL_ENV', 'OPENAI_API_KEY', 'RUN_LIVE_OPENAI_TESTS',
+                    'RUN_LIVE_CALIBRATION'):
+            environment.pop(key, None)
         _run([uv, 'sync', '--locked', '--no-dev', '--python', sys.executable,
-            *(['--offline'] if offline else [])], cwd=checkout)
-        _run([str(checkout / '.venv' / 'bin' / 'python'), '-I', '-c',
-            'from model_router.service import create_app; from model_router.release.cli import main'], cwd=checkout)
+            *(['--offline'] if offline else [])], cwd=checkout, environment=environment)
+        outside = checkout / 'outside'
+        outside.mkdir()
+        verify_editable_imports(checkout / '.venv/bin/python', checkout, cwd=outside)
+        executable = str(checkout / '.venv/bin/model-router')
+        _run([executable, '--help'], cwd=outside, environment=environment)
+        _run([executable, 'calibrate', 'validate',
+              str(checkout / 'calibration/sample/corpus-v1.jsonl')],
+             cwd=outside, environment=environment)
 
 
 def main() -> int:

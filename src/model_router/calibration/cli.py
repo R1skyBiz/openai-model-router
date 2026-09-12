@@ -49,6 +49,8 @@ def _parser():
             command.add_argument('--case-id',required=True)
             command.add_argument('--family')
             command.add_argument('--tag',action='append',default=[])
+    from .chatgpt_export import add_parser
+    add_parser(commands)
     return parser
 
 
@@ -98,6 +100,15 @@ def _live(config, bundle, classifier_config):
 def main(argv=None):
     args = _parser().parse_args(argv)
     try:
+        if args.command == 'export-intake':
+            from .chatgpt_export import ExportRejected, run
+            try:
+                result = run(args)
+            except ExportRejected as error:
+                print(json_report({'error': 'ExportIntakeRejected', 'reason': str(error)}), end='')
+                return 2
+            print(json_report(result), end='')
+            return 0
         if args.command == 'schema':
             print(json_report(CalibrationCase.model_json_schema()),end='')
             return 0

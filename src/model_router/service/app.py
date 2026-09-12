@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Annotated, Any
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request as HTTPRequest
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
 
 from model_router.core.contracts import (
     Classification,
@@ -28,25 +27,9 @@ from model_router.execution.provider import MockProvider
 from model_router.router import route
 
 
-class RouteBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    request: Request
-    classification: Classification
-
-
-class ExecuteBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    request: Request
-    classification: Classification | None = None
-    idempotency_key: Annotated[str, Field(min_length=1)] | None = None
-
-
-class ClassifyRouteBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    request: Request
-    idempotency_key: Annotated[str, Field(min_length=1, max_length=256, pattern=r"\S")]
+from model_router.http_contracts import (
+    RouteBody, ExecuteBody, ClassifyRouteBody, IntegrationStatus,
+)
 
 
 def create_app(
@@ -112,6 +95,24 @@ def create_app(
     def health_live():
         # Process liveness deliberately performs no dependency or provider I/O.
         return {"live": True, "state": "HEALTHY"}
+
+    @app.get("/health/integration", response_model=IntegrationStatus)
+    def integration_status():
+        # Composition facts, not health probes or authorization for a future call.
+        environment = _environment(dependencies)
+        live = dependencies.live is not None
+        shadow = dependencies.shadow is not None
+        synthetic = environment.synthetic and isinstance(dependencies.provider, MockProvider)
+        mode = ("live" if live and not environment.synthetic else
+                "shadow" if synthetic and shadow else "mock" if synthetic else
+                "route_only" if not dependencies.controls.authorized else "unknown")
+        return IntegrationStatus(
+            mode=mode,
+            execution_enabled=dependencies.controls.authorized,
+            live_execution_enabled=live,
+            paid_classifier_enabled=preview is not None,
+            shadow_enabled=shadow,
+        )
 
     @app.get("/health/ready")
     def health_ready():
@@ -237,7 +238,17 @@ def create_app(
         return outcome.model_dump(mode="json")
 
     @app.post("/v1/execute")
-    def execute_request(body: ExecuteBody):
+    def execute_request(body: ExecuteBody, http_request: HTTPRequest):
+        expected_mode = http_request.headers.get("x-model-router-expected-mode")
+        if expected_mode is not None:
+            status = integration_status()
+            if (expected_mode not in {"mock", "live"} or status.mode != expected_mode
+                    or not status.execution_enabled
+                    or status.live_execution_enabled != (expected_mode == "live")
+                    or (expected_mode == "mock" and (status.shadow_enabled or status.paid_classifier_enabled))):
+                return _error_response(409, "execution_mode_mismatch",
+                    "The requested execution mode is unavailable.",
+                    task_id=body.request.task_id, trace_id=body.request.trace_id)
         request = _trusted_request(body.request, trusted_application_id)
         if request is None:
             return _error_response(

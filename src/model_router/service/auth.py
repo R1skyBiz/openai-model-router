@@ -290,6 +290,7 @@ def _required_scope(path: str) -> Scope | None:
     if path == "/v1/telemetry" or path.startswith("/v1/telemetry/"):
         return "read"
     if path in {
+        "/health/integration",
         "/health/ready",
         "/health/components",
         "/openapi.json",

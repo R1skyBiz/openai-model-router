@@ -27,3 +27,8 @@ calibration/runs
 calibration/outputs
 **/calibration-private
 **/*.private.jsonl
+# Private export intake is external; exclude accidental local copies too.
+private-intake
+chatgpt-exports
+source-intake
+conversations.json

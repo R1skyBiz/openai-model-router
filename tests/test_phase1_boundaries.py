@@ -30,6 +30,8 @@ def test_runtime_source_has_no_forbidden_boundary_imports():
                 allowed |= {"sqlalchemy", "alembic"}
             if path.is_relative_to(ROOT / "src/model_router/service"):
                 allowed |= {"fastapi"}
+            if path.is_relative_to(ROOT / "src/model_router/client"):
+                allowed |= {"httpx"}
             assert not any(name.split(".")[0] in FORBIDDEN - allowed for name in imports), path
 
 
